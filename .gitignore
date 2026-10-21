@@ -1,0 +1,339 @@
+# ==============================================================================
+# Comprehensive .gitignore for multi-language development
+# Languages: Dart, TypeScript, JavaScript, Python, Rust, Go
+# Includes: VS Code extension development, Flutter
+# ==============================================================================
+
+# ==============================================================================
+# GENERAL / CROSS-PLATFORM
+# ==============================================================================
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# Editor/IDE
+*.swp
+*.swo
+*~
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/settings.json
+.vscode/tasks.json
+.vscode/launch.json
+*.sublime-project
+*.sublime-workspace
+
+# Logs and databases
+*.log
+*.sql
+# Reference DDL migrations shipped as example artifacts are tracked despite *.sql
+!**/example/**/migrations/**/*.sql
+# Server-sample migration trees are deliverables (schema + seed), not local DBs
+!**/database_migrations/**/*.sql
+# SQL under a test fixtures folder is committed input, not a local DB dump —
+# migration trees for the engine, and the convergence check's chains.
+!**/test/fixtures/**/*.sql
+*.sqlite
+*.sqlite3
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.backup
+tmp/
+temp/
+ztmp/
+
+# Build outputs (generic)
+build/
+dist/
+out/
+target/
+obj/
+
+# Coverage
+coverage/
+*.lcov
+.nyc_output/
+htmlcov/
+.coverage
+.coverage.*
+
+# ==============================================================================
+# DART / FLUTTER
+# ==============================================================================
+
+# Dart tool
+.dart_tool/
+.packages
+pubspec.lock
+
+# Pub cache
+.pub-cache/
+.pub/
+
+# Flutter
+.flutter-plugins
+.flutter-plugins-dependencies
+**/generated_plugin_registrant.dart
+
+# Generated files
+*.g.dart
+*.freezed.dart
+*.gr.dart
+*.mocks.dart
+*.reflectable.dart
+reflectable.dart
+
+# Flutter golden-file test failure artifacts (master/test/diff PNGs,
+# regenerated on every failing run)
+**/test/failures/
+
+# Flutter build
+**/Flutter/ephemeral/
+**/Flutter/App.framework
+**/Flutter/Flutter.framework
+**/Flutter/Flutter.podspec
+**/Flutter/Generated.xcconfig
+**/Flutter/app.flx
+**/Flutter/app.zip
+**/Flutter/flutter_assets/
+**/Flutter/flutter_export_environment.sh
+**/Flutter/.last_build_id
+
+# Generated plugin registrants
+**/GeneratedPluginRegistrant.*
+**/generated_plugin_registrant.cc
+**/generated_plugin_registrant.h
+**/generated_plugins.cmake
+
+# API documentation.
+#
+# The *generated* reference (dartdoc's `doc/api/`, and `doc/api/reference/`) is
+# output and stays out of version control. The hand-written
+# `api_summary_<module>.md` / `api_reference_<module>.md` files are **not**
+# output — `tom_specs_documentation_standard.md` §3.1 and
+# `_copilot_guidelines/dart/api_summary_creation.md` both place them here — so
+# they are re-included below.
+#
+# The pattern excludes the directory's *direct children* (`**/doc/api/*`),
+# which takes dartdoc's files and every subdirectory (`reference/`, its
+# library folders, `static-assets/`) with it. Two forms do not work: git
+# cannot re-include a file whose parent directory is excluded, so
+# `**/doc/api/` makes the negations below dead; and pub does not honour the
+# negations under `**/doc/api/**`, so with that form git tracked the
+# summaries while every published archive left them out.
+# tom_specs_clitool/test/pub_archive_ignores_test.dart asks pub itself.
+**/doc/api/*
+!**/doc/api/api_summary_*.md
+!**/doc/api/api_reference_*.md
+
+# Symbols
+app.*.symbols
+
+# Android
+.gradle/
+**/android/gradle-wrapper.jar
+**/android/gradlew
+**/android/gradlew.bat
+**/android/local.properties
+**/android/key.properties
+**/android/captures/
+*.jks
+*.keystore
+
+# iOS / macOS
+**/ios/**/*.mode1v3
+**/ios/**/*.mode2v3
+**/ios/**/*.moved-aside
+**/ios/**/*.pbxuser
+**/ios/**/*.perspectivev3
+**/ios/**/DerivedData/
+**/ios/**/Pods/
+**/ios/**/.symlinks/
+**/ios/**/xcuserdata/
+**/ios/ServiceDefinitions.json
+**/macos/Pods/
+**/xcuserdata/
+Podfile.lock
+
+# ==============================================================================
+# TYPESCRIPT / JAVASCRIPT / NODE.JS
+# ==============================================================================
+
+# Dependencies
+node_modules/
+jspm_packages/
+bower_components/
+
+# Build outputs
+*.js.map
+*.d.ts.map
+*.tsbuildinfo
+
+# Package managers
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+.yarn/
+.pnp.*
+
+# Caches
+.npm/
+.eslintcache
+.parcel-cache/
+.cache/
+.turbo/
+
+# VS Code Extension development
+*.vsix
+.vscode-test/
+out/
+
+# Webpack / bundlers
+.webpack/
+.next/
+.nuxt/
+
+# TypeScript
+*.tsbuildinfo
+
+# ==============================================================================
+# PYTHON
+# ==============================================================================
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+venv/
+ENV/
+env/
+.venv/
+.env/
+.python-version
+Pipfile.lock
+poetry.lock
+
+# Distribution / packaging
+*.egg
+*.egg-info/
+.eggs/
+*.whl
+MANIFEST
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage
+.pytest_cache/
+.tox/
+.nox/
+nosetests.xml
+pytest.xml
+
+# Jupyter Notebook
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Pyre type checker
+.pyre/
+
+# pytype
+.pytype/
+
+# Cython debug symbols
+cython_debug/
+
+# ==============================================================================
+# RUST
+# ==============================================================================
+
+# Build artifacts
+target/
+**/*.rs.bk
+
+# Cargo
+Cargo.lock
+*.rlib
+
+# Debug
+*.pdb
+
+# ==============================================================================
+# GO
+# ==============================================================================
+
+# Binaries
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary
+*.test
+
+# Go workspace
+go.work
+go.work.sum
+
+# Vendor directory (optional)
+# vendor/
+
+# Go module cache (if local)
+/go/
+
+# ==============================================================================
+# PROJECT-SPECIFIC EXCLUSIONS
+# ==============================================================================
+
+# AI trail files (keep .gitkeep)
+_ai/**/trail/*
+!_ai/**/trail/.gitkeep
+
+# Chat replies
+_ai/chat_replies/
+
+# Legacy config files
+bk_master.yaml
+
+# Metadata backup
+.tom_metadata_backup/
+
+# Info files
+*.info
+
+# Local development folders (repo-specific - add as needed)
+# /some_local_folder/
+
+# Analyzer summary caches generated by tom_analyzer_shared. These `.sum`
+# bundles are regenerable, analyzer-version-specific build artifacts keyed by
+# `package@version`. Tracking them poisons the cache on every analyzer upgrade
+# (an analyzer-8 bundle is undecodable by analyzer 10's bundle_reader ->
+# RangeError in _readDirectiveUri) and bloats the repo. They regenerate on
+# demand.
+**/.tom/analyzer-cache/
+
+# Test run logs, baselines and analysis — machine-generated, never versioned.
+# These live in a `testlog/` folder next to each project's `doc/` folder.
+# The `doc/` folder itself is fully tracked (no test artifacts written there).
+**/testlog/

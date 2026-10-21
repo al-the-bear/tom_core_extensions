@@ -1,0 +1,31 @@
+# Shared analysis options for the Tom workspace
+# Individual projects should include this file with:
+#   include: ../analysis_options.yaml
+
+analyzer:
+  errors:
+    # Raised from its default `info`, which `dart analyze` reports and then
+    # exits 0 on — so the rule below was printed and not enforced. A package
+    # importing itself through a `package:` URI is a cycle when the target is
+    # the barrel, and the workspace's quality gate is `dart analyze`, so the
+    # finding has to be one that gate can fail on.
+    prefer_relative_imports: warning
+  exclude:
+    - "**/*_generated.dart"
+    - "**/*_bridges.dart"
+    - "**/*.reflection.dart"
+    - "**/test/**/fixtures/**"
+
+linter:
+  rules:
+    unawaited_futures: true
+    discarded_futures: true
+    # A package refers to its own lib/ relatively and reserves the package: form
+    # for other packages. The absolute form encodes the package name into the
+    # URI, so it silently survives a move; and a file under lib/src/ that names
+    # its own barrel imports a library that exports it back.
+    prefer_relative_imports: true
+    # Disable file_names - we use numbered prefixes for ordering (e.g., 01_example.dart)
+    file_names: false
+    # Disable dangling_library_doc_comments - generated bridge files may have doc comments at top
+    dangling_library_doc_comments: false
