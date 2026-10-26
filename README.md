@@ -11,8 +11,8 @@ application may use or leave out, and each of them builds on `tom_core`.
 | --- | --- | --- |
 | `tom_basics` (`tom_ai/basics`) | Generic libraries usable in any Dart application, and the base libraries for a class of tools | other basics packages only |
 | `tom_core` (`tom_ai/core`) | The essential services of a Tom application | basics |
-| **`tom_core_extensions`** (`tom_ai/core_extensions`) | **Optional services built on the core** | basics, core |
-| `tom_modules` | Application-level libraries for Tom-internal reuse: models, model utilities, reusable UI components | basics, core, core extensions, other modules |
+| **`tom_core_extensions`** (`tom_ai/core_extension`) | **Optional services built on the core** | basics, core |
+| `tom_modules` (`tom_ai/modules`) | Application-level libraries for Tom-internal reuse: models, model utilities, reusable UI components | basics, core, core extensions, other modules |
 
 A package belongs here when an application can do without it and it needs
 `tom_core` to work. A package that needs nothing from the workspace beyond
