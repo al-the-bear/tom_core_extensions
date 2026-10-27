@@ -1,7 +1,7 @@
 # Tom Core Agentic API Reference: LLM Module
 
 The symbol-level mirror of `lib/src/llm/`: six types across two libraries and
-one top-level function. The barrel also re-exports `tom_core_llm`, whose
+one top-level function. The barrel also re-exports `tom_llm`, whose
 provider contract these implement; that package mirrors its own symbols.
 
 [`doc/llm.md`](../llm.md) explains the provider — the control inversion, why

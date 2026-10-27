@@ -18,7 +18,7 @@ without gaining one fails too.
 | ---- | ------- | ------ |
 | `agent` | [api_summary_agent.md](api_summary_agent.md) | The editor-facing agent layer: eleven YAML sidecars and their models, bridge discovery and binding, the reconnect loop, and the send engine. |
 | `isolate_streaming` | [api_summary_isolate_streaming.md](api_summary_isolate_streaming.md) | The primitives a host and a worker isolate share: cancellation tokens, close signals, backpressure credit, request guards, and typed-error reconstruction. |
-| `llm` | [api_summary_llm.md](api_summary_llm.md) | The Anthropic Agent SDK provider over the `tom_core_llm` contract, and the three session strategies. |
+| `llm` | [api_summary_llm.md](api_summary_llm.md) | The Anthropic Agent SDK provider over the `tom_llm` contract, and the three session strategies. |
 | `placeholders` | [api_summary_placeholders.md](api_summary_placeholders.md) | The placeholder engine: the four forms, the lexical scope chain, the expression seam, and the three wire-coded failures. |
 
 ## Which units get one
