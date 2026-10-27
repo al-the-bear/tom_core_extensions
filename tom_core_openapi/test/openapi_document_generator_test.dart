@@ -106,7 +106,24 @@ void main() {
       });
       expect(((components['schemas'] as Map)['TomError'] as Map)['required'], [
         'errorType',
+      ]); // RFC 9457: the problem document is the envelope plus type, title and
+      // status, and every error response offers it beside the envelope.
+      final problem = (components['schemas'] as Map)['TomProblem'] as Map;
+      expect((problem['allOf'] as List).first, {
+        r'$ref': '#/components/schemas/TomError',
+      });
+      expect(((problem['allOf'] as List).last as Map)['required'], [
+        'type',
+        'title',
+        'status',
       ]);
+      final operations = (document['paths'] as Map).values
+          .expand((item) => (item as Map).values)
+          .whereType<Map>();
+      final errorContent =
+          ((operations.first['responses'] as Map)['default'] as Map)['content']
+              as Map;
+      expect(errorContent.keys, contains('application/problem+json'));
     });
   });
 

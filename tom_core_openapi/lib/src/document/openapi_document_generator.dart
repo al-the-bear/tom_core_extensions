@@ -58,6 +58,10 @@ class TomOpenApiDocumentGenerator {
   /// The component describing the framework's error envelope.
   static const String errorSchema = 'TomError';
 
+  /// The component name of the RFC 9457 problem document a Tom server answers
+  /// an error with when the caller asks for `application/problem+json`.
+  static const String problemSchema = 'TomProblem';
+
   /// The document's `info` block.
   final TomOpenApiInfo info;
 
@@ -174,6 +178,7 @@ class TomOpenApiDocumentGenerator {
     }
 
     schemas.components[errorSchema] = _errorEnvelope;
+    schemas.components[problemSchema] = _problemDocument;
     final document = <String, Object?>{
       'openapi': openApiVersion,
       'info': {
@@ -521,8 +526,10 @@ class TomOpenApiDocumentGenerator {
     },
     'default': {
       'description':
-          'A failure. The body is the framework error envelope unless the '
-          "server's error handler writes its own.",
+          'A failure. The body is the framework error envelope, or the same '
+          'fields as an RFC 9457 problem document when the request accepts '
+          "application/problem+json, unless the server's error handler writes "
+          'its own.',
       'content': _errorContent,
     },
   };
@@ -535,6 +542,9 @@ class TomOpenApiDocumentGenerator {
           {'type': 'object'},
         ],
       },
+    },
+    'application/problem+json': {
+      'schema': {r'$ref': '#/components/schemas/$problemSchema'},
     },
   };
 
@@ -632,5 +642,27 @@ class TomOpenApiDocumentGenerator {
       'loginFailure': {'type': 'string'},
     },
     'required': ['errorType'],
+  };
+
+  /// The RFC 9457 problem document (`tomProblemDetails`): the envelope's
+  /// members plus `type` (`urn:tom:error:<errorKey>`, or `about:blank`),
+  /// `title`, `status` and, when the error names its request, `instance`.
+  static const Map<String, Object?> _problemDocument = {
+    'description':
+        'An error as an RFC 9457 problem document, answered when the request '
+        'accepts application/problem+json or its API always answers one.',
+    'allOf': [
+      {r'$ref': '#/components/schemas/$errorSchema'},
+      {
+        'type': 'object',
+        'properties': {
+          'type': {'type': 'string', 'format': 'uri-reference'},
+          'title': {'type': 'string'},
+          'status': {'type': 'integer'},
+          'instance': {'type': 'string', 'format': 'uri-reference'},
+        },
+        'required': ['type', 'title', 'status'],
+      },
+    ],
   };
 }

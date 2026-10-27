@@ -104,7 +104,10 @@ mounts, framework endpoints included. WebSocket endpoints are skipped; an
 are sorted, so the output is deterministic and a committed copy diffs cleanly.
 Every operation states a `404`, a `429` with a `Retry-After` header — a rate
 limit is deployment configuration any operation may be under — and a `default`
-error response; an authenticated operation's `security` is
+error response; the `429` and `default` bodies are offered as `application/json`
+(the `TomError` envelope) and as `application/problem+json` (the `'TomProblem'`
+RFC 9457 problem document). A versioned API's operations sit under their
+`/v<version>` segment, the route the server mounts. An authenticated operation's `security` is
 `[{bearerAuth: []}, {apiKeyAuth: []}]`, a bearer token or an API key.
 
 ```dart
@@ -134,6 +137,7 @@ TomOpenApiDocumentGenerator({
 | `bearerScheme` | `String` | The security scheme of a bearer token, `bearerAuth` (a `const`): HTTP bearer with a JWT. Every authenticated operation names it. |
 | `apiKeyScheme` | `String` | The security scheme of a service account's API key, `apiKeyAuth` (a `const`): `type: apiKey` in the `X-API-Key` header. Every authenticated operation names it as the alternative to `bearerScheme`. |
 | `errorSchema` | `String` | The component describing the framework's error envelope, `TomError` (a `const`). |
+| `problemSchema` | `String` | The component describing the RFC 9457 problem document a Tom server answers an error with when the caller asks for `application/problem+json`, `'TomProblem'` (a `const`): `allOf` `TomError` and the required `type`, `title` and `status`, with an optional `instance`. |
 | `contextTypes` | `Set<String>` | The parameter types the pipeline supplies from the request itself and a caller never sends: `TomPrincipal`, `TomClientJwtToken`, `TomExecutionContext`, `TomRequestLogInfo`. |
 | `primitiveParameterTypes` | `Set<String>` | The parameter types bound from a path variable or a query parameter: `String`, `int`, `double`, `num`, `bool`. |
 

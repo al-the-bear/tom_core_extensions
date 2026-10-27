@@ -96,7 +96,7 @@ servers: [{url}, ...]                 — omitted when none
 tags: [{name, description?}, ...]     — one per API or service class, sorted
 paths: {path: {method: operation}}    — sorted by path, methods in a fixed order
 components:
-  schemas: {...}                      — every reached class, plus TomError
+  schemas: {...}                      — every reached class, plus TomError and TomProblem
   securitySchemes:
     bearerAuth: {type: http, scheme: bearer, bearerFormat: JWT}
     apiKeyAuth: {type: apiKey, in: header, name: X-API-Key, description}
@@ -120,6 +120,10 @@ whatever the server's registrations bring in) — and nothing it does not.
 
 **Paths.** A route template's `<name>` capture, the `shelf_router` spelling,
 becomes `{name}`; an empty route is `/` (`TomOpenApiDocumentGenerator.openApiPath`).
+A path is the route the server mounts, so a versioned API's operations appear
+under its version segment: `/v2/orders` for an endpoint of a
+`@TomService(version: 2)` service or of a registry `TomApi` with `version: 2`,
+and two versions of one API are two sets of paths side by side.
 Within a path the methods are ordered `get`, `put`, `post`, `delete`, `head`,
 `patch`, `trace`. Two endpoints claiming one method on one path are refused
 (`openapi.document.duplicate_route`).
@@ -207,12 +211,13 @@ otherwise from the method's reflected return type, without its `Future`
 
 Every operation also carries three error responses:
 
-- **`429`**, as `application/json` with the same schema as `default`, and a
+- **`429`**, with the same two media types and schemas as `default`, and a
   `Retry-After` header (`integer`, `minimum: 1`) giving the seconds to wait. It
   is stated for every operation because rate limits are deployment
   configuration the build cannot see: any operation may be limited, and a
   caller should be ready to wait the `Retry-After` it is given. The body is the
-  framework envelope keyed `rate_limit.exceeded`.
+  framework envelope keyed `rate_limit.exceeded`, or the problem document with
+  `type` `urn:tom:error:rate_limit.exceeded`.
 
 - **`404`**, as `text/plain`. It is stated for every operation because it is
   how the framework refuses a caller: a denied request answers a bare
@@ -220,15 +225,26 @@ Every operation also carries three error responses:
   a refusal does not confirm what it refuses. A client must read a `404` as
   "not found or not yours".
 - **`default`**, as `application/json` with the schema
-  `anyOf: [{$ref: TomError}, {type: object}]`. Which status an error carries is
-  the server's error handler's decision, and so is its body — usually the
-  framework envelope, which the `TomError` component describes, but a handler
-  may write its own.
+  `anyOf: [{$ref: TomError}, {type: object}]`, and as
+  `application/problem+json` with the schema `{$ref: 'TomProblem'}`. Which status
+  an error carries is the server's error handler's decision, and so is its body
+  — usually the framework envelope, which the `TomError` component describes,
+  or, for a request whose `Accept` names `application/problem+json` (and for
+  every error of a service declared `problemJson: true`), the same fields as an
+  RFC 9457 problem document, which the component `'TomProblem'` describes; a handler may write
+  its own.
 
 `TomError` is the framework's error envelope (`tomErrorEnvelope`): an object
 whose only required member is `errorType`, with `errorKey`, `uuid`, `autoLog`,
 `requestUuid` (string or `null`), `clientThrow` and `loginFailure` present when
 the error carries them.
+
+The `'TomProblem'` component is the RFC 9457 problem document (`tomProblemDetails`):
+`allOf` the `TomError` envelope and an object requiring `type` (a
+`uri-reference`: `urn:tom:error:<errorKey>`, or `about:blank` for an error
+without a key), `title` (the status's reason phrase) and `status` (an integer),
+with `instance` (`urn:tom:request:<requestUuid>`) when the error names its
+request. Its component name is `TomOpenApiDocumentGenerator.problemSchema`.
 
 ## Security
 
