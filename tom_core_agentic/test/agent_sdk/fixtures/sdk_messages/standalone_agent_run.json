@@ -1,0 +1,1616 @@
+[
+  {
+    "type": "system",
+    "subtype": "session_state_changed",
+    "state": "running",
+    "uuid": "uuid-fixture",
+    "session_id": "session-fixture"
+  },
+  {
+    "type": "system",
+    "subtype": "init",
+    "session_id": "session-fixture",
+    "tools": [
+      "mcp__tools__set_headline"
+    ],
+    "mcp_servers": [
+      {
+        "name": "tools",
+        "status": "connected",
+        "source": "sdk"
+      }
+    ],
+    "model": "claude-opus-5-5",
+    "permissionMode": "default",
+    "uuid": "uuid-fixture"
+  },
+  {
+    "type": "system",
+    "subtype": "status",
+    "status": "requesting",
+    "session_id": "session-fixture",
+    "uuid": "uuid-fixture"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "message_start",
+      "message": {
+        "model": "claude-opus-5-5",
+        "id": "msg_011CgELR8A8hVbdxqT4AKCPo",
+        "type": "message",
+        "role": "assistant",
+        "content": [],
+        "container": null,
+        "stop_reason": null,
+        "stop_sequence": null,
+        "stop_details": null,
+        "usage": {
+          "input_tokens": 2,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 29138,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 8,
+          "service_tier": "standard",
+          "inference_geo": "global",
+          "speed": "standard"
+        },
+        "input_transformations": [],
+        "diagnostics": null,
+        "context_management": null
+      }
+    },
+    "session_id": "session-fixture",
+    "parent_tool_use_id": null,
+    "uuid": "uuid-fixture",
+    "ttft_ms": 629,
+    "thinking_display": "summarized"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_start",
+      "index": 0,
+      "content_block": {
+        "type": "thinking",
+        "thinking": "",
+        "signature": ""
+      }
+    },
+    "session_id": "session-fixture",
+    "parent_tool_use_id": null,
+    "uuid": "uuid-fixture",
+    "thinking_display": "summarized"
+  },
+  {
+    "type": "rate_limit_event",
+    "rate_limit_info": {
+      "status": "allowed"
+    },
+    "uuid": "uuid-fixture",
+    "session_id": "session-fixture"
+  },
+  {
+    "type": "system",
+    "subtype": "thinking_tokens",
+    "estimated_tokens": 3,
+    "estimated_tokens_delta": 3,
+    "session_id": "session-fixture",
+    "uuid": "uuid-fixture"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 0,
+      "delta": {
+        "type": "thinking_delta",
+        "thinking": "Checking num",
+        "estimated_tokens": null
+      }
+    },
+    "session_id": "session-fixture",
+    "parent_tool_use_id": null,
+    "uuid": "uuid-fixture",
+    "thinking_display": "summarized"
+  },
+  {
+    "type": "system",
+    "subtype": "thinking_tokens",
+    "estimated_tokens": 7,
+    "estimated_tokens_delta": 4,
+    "session_id": "session-fixture",
+    "uuid": "uuid-fixture"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 0,
+      "delta": {
+        "type": "thinking_delta",
+        "thinking": "bers above 380",
+        "estimated_tokens": null
+      }
+    },
+    "session_id": "session-fixture",
+    "parent_tool_use_id": null,
+    "uuid": "uuid-fixture",
+    "thinking_display": "summarized"
+  },
+  {
+    "type": "system",
+    "subtype": "thinking_tokens",
+    "estimated_tokens": 12,
+    "estimated_tokens_delta": 5,
+    "session_id": "session-fixture",
+    "uuid": "uuid-fixture"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 0,
+      "delta": {
+        "type": "thinking_delta",
+        "thinking": " with digit sum 13",
+        "estimated_tokens": null
+      }
+    },
+    "session_id": "session-fixture",
+    "parent_tool_use_id": null,
+    "uuid": "uuid-fixture",
+    "thinking_display": "summarized"
+  },
+  {
+    "type": "system",
+    "subtype": "thinking_tokens",
+    "estimated_tokens": 14,
+    "estimated_tokens_delta": 2,
+    "session_id": "session-fixture",
+    "uuid": "uuid-fixture"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 0,
+      "delta": {
+        "type": "thinking_delta",
+        "thinking": ": 391",
+        "estimated_tokens": null
+      }
+    },
+    "session_id": "session-fixture",
+    "parent_tool_use_id": null,
+    "uuid": "uuid-fixture",
+    "thinking_display": "summarized"
+  },
+  {
+    "type": "system",
+    "subtype": "thinking_tokens",
+    "estimated_tokens": 16,
+    "estimated_tokens_delta": 2,
+    "session_id": "session-fixture",
+    "uuid": "uuid-fixture"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 0,
+      "delta": {
+        "type": "thinking_delta",
+        "thinking": " fact",
+        "estimated_tokens": null
+      }
+    },
+    "session_id": "session-fixture",
+    "parent_tool_use_id": null,
+    "uuid": "uuid-fixture",
+    "thinking_display": "summarized"
+  },
+  {
+    "type": "system",
+    "subtype": "thinking_tokens",
+    "estimated_tokens": 20,
+    "estimated_tokens_delta": 4,
+    "session_id": "session-fixture",
+    "uuid": "uuid-fixture"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 0,
+      "delta": {
+        "type": "thinking_delta",
+        "thinking": "ors as 17×23, so",
+        "estimated_tokens": null
+      }
+    },
+    "session_id": "session-fixture",
+    "parent_tool_use_id": null,
+    "uuid": "uuid-fixture",
+    "thinking_display": "summarized"
+  },
+  {
+    "type": "system",
+    "subtype": "thinking_tokens",
+    "estimated_tokens": 23,
+    "estimated_tokens_delta": 3,
+    "session_id": "session-fixture",
+    "uuid": "uuid-fixture"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 0,
+      "delta": {
+        "type": "thinking_delta",
+        "thinking": " it's out",
+        "estimated_tokens": null
+      }
+    },
+    "session_id": "session-fixture",
+    "parent_tool_use_id": null,
+    "uuid": "uuid-fixture",
+    "thinking_display": "summarized"
+  },
+  {
+    "type": "system",
+    "subtype": "thinking_tokens",
+    "estimated_tokens": 25,
+    "estimated_tokens_delta": 2,
+    "session_id": "session-fixture",
+    "uuid": "uuid-fixture"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 0,
+      "delta": {
+        "type": "thinking_delta",
+        "thinking": ". Then I",
+        "estimated_tokens": null
+      }
+    },
+    "session_id": "session-fixture",
+    "parent_tool_use_id": null,
+    "uuid": "uuid-fixture",
+    "thinking_display": "summarized"
+  },
+  {
+    "type": "system",
+    "subtype": "thinking_tokens",
+    "estimated_tokens": 26,
+    "estimated_tokens_delta": 1,
+    "session_id": "session-fixture",
+    "uuid": "uuid-fixture"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 0,
+      "delta": {
+        "type": "thinking_delta",
+        "thinking": " ver",
+        "estimated_tokens": null
+      }
+    },
+    "session_id": "session-fixture",
+    "parent_tool_use_id": null,
+    "uuid": "uuid-fixture",
+    "thinking_display": "summarized"
+  },
+  {
+    "type": "system",
+    "subtype": "thinking_tokens",
+    "estimated_tokens": 31,
+    "estimated_tokens_delta": 5,
+    "session_id": "session-fixture",
+    "uuid": "uuid-fixture"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 0,
+      "delta": {
+        "type": "thinking_delta",
+        "thinking": "ify 409 is prime by",
+        "estimated_tokens": null
+      }
+    },
+    "session_id": "session-fixture",
+    "parent_tool_use_id": null,
+    "uuid": "uuid-fixture",
+    "thinking_display": "summarized"
+  },
+  {
+    "type": "system",
+    "subtype": "thinking_tokens",
+    "estimated_tokens": 33,
+    "estimated_tokens_delta": 2,
+    "session_id": "session-fixture",
+    "uuid": "uuid-fixture"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 0,
+      "delta": {
+        "type": "thinking_delta",
+        "thinking": " test",
+        "estimated_tokens": null
+      }
+    },
+    "session_id": "session-fixture",
+    "parent_tool_use_id": null,
+    "uuid": "uuid-fixture",
+    "thinking_display": "summarized"
+  },
+  {
+    "type": "system",
+    "subtype": "thinking_tokens",
+    "estimated_tokens": 35,
+    "estimated_tokens_delta": 2,
+    "session_id": "session-fixture",
+    "uuid": "uuid-fixture"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 0,
+      "delta": {
+        "type": "thinking_delta",
+        "thinking": "ing div",
+        "estimated_tokens": null
+      }
+    },
+    "session_id": "session-fixture",
+    "parent_tool_use_id": null,
+    "uuid": "uuid-fixture",
+    "thinking_display": "summarized"
+  },
+  {
+    "type": "system",
+    "subtype": "thinking_tokens",
+    "estimated_tokens": 38,
+    "estimated_tokens_delta": 3,
+    "session_id": "session-fixture",
+    "uuid": "uuid-fixture"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 0,
+      "delta": {
+        "type": "thinking_delta",
+        "thinking": "isibility up",
+        "estimated_tokens": null
+      }
+    },
+    "session_id": "session-fixture",
+    "parent_tool_use_id": null,
+    "uuid": "uuid-fixture",
+    "thinking_display": "summarized"
+  },
+  {
+    "type": "system",
+    "subtype": "thinking_tokens",
+    "estimated_tokens": 41,
+    "estimated_tokens_delta": 3,
+    "session_id": "session-fixture",
+    "uuid": "uuid-fixture"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 0,
+      "delta": {
+        "type": "thinking_delta",
+        "thinking": " through its",
+        "estimated_tokens": null
+      }
+    },
+    "session_id": "session-fixture",
+    "parent_tool_use_id": null,
+    "uuid": "uuid-fixture",
+    "thinking_display": "summarized"
+  },
+  {
+    "type": "system",
+    "subtype": "thinking_tokens",
+    "estimated_tokens": 46,
+    "estimated_tokens_delta": 5,
+    "session_id": "session-fixture",
+    "uuid": "uuid-fixture"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 0,
+      "delta": {
+        "type": "thinking_delta",
+        "thinking": " square root, fin",
+        "estimated_tokens": null
+      }
+    },
+    "session_id": "session-fixture",
+    "parent_tool_use_id": null,
+    "uuid": "uuid-fixture",
+    "thinking_display": "summarized"
+  },
+  {
+    "type": "system",
+    "subtype": "thinking_tokens",
+    "estimated_tokens": 48,
+    "estimated_tokens_delta": 2,
+    "session_id": "session-fixture",
+    "uuid": "uuid-fixture"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 0,
+      "delta": {
+        "type": "thinking_delta",
+        "thinking": "ding no",
+        "estimated_tokens": null
+      }
+    },
+    "session_id": "session-fixture",
+    "parent_tool_use_id": null,
+    "uuid": "uuid-fixture",
+    "thinking_display": "summarized"
+  },
+  {
+    "type": "system",
+    "subtype": "thinking_tokens",
+    "estimated_tokens": 51,
+    "estimated_tokens_delta": 3,
+    "session_id": "session-fixture",
+    "uuid": "uuid-fixture"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 0,
+      "delta": {
+        "type": "thinking_delta",
+        "thinking": " factors,",
+        "estimated_tokens": null
+      }
+    },
+    "session_id": "session-fixture",
+    "parent_tool_use_id": null,
+    "uuid": "uuid-fixture",
+    "thinking_display": "summarized"
+  },
+  {
+    "type": "system",
+    "subtype": "thinking_tokens",
+    "estimated_tokens": 53,
+    "estimated_tokens_delta": 2,
+    "session_id": "session-fixture",
+    "uuid": "uuid-fixture"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 0,
+      "delta": {
+        "type": "thinking_delta",
+        "thinking": " while",
+        "estimated_tokens": null
+      }
+    },
+    "session_id": "session-fixture",
+    "parent_tool_use_id": null,
+    "uuid": "uuid-fixture",
+    "thinking_display": "summarized"
+  },
+  {
+    "type": "system",
+    "subtype": "thinking_tokens",
+    "estimated_tokens": 55,
+    "estimated_tokens_delta": 2,
+    "session_id": "session-fixture",
+    "uuid": "uuid-fixture"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 0,
+      "delta": {
+        "type": "thinking_delta",
+        "thinking": " also",
+        "estimated_tokens": null
+      }
+    },
+    "session_id": "session-fixture",
+    "parent_tool_use_id": null,
+    "uuid": "uuid-fixture",
+    "thinking_display": "summarized"
+  },
+  {
+    "type": "system",
+    "subtype": "thinking_tokens",
+    "estimated_tokens": 56,
+    "estimated_tokens_delta": 1,
+    "session_id": "session-fixture",
+    "uuid": "uuid-fixture"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 0,
+      "delta": {
+        "type": "thinking_delta",
+        "thinking": " sc",
+        "estimated_tokens": null
+      }
+    },
+    "session_id": "session-fixture",
+    "parent_tool_use_id": null,
+    "uuid": "uuid-fixture",
+    "thinking_display": "summarized"
+  },
+  {
+    "type": "system",
+    "subtype": "thinking_tokens",
+    "estimated_tokens": 60,
+    "estimated_tokens_delta": 4,
+    "session_id": "session-fixture",
+    "uuid": "uuid-fixture"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 0,
+      "delta": {
+        "type": "thinking_delta",
+        "thinking": "anning between",
+        "estimated_tokens": null
+      }
+    },
+    "session_id": "session-fixture",
+    "parent_tool_use_id": null,
+    "uuid": "uuid-fixture",
+    "thinking_display": "summarized"
+  },
+  {
+    "type": "system",
+    "subtype": "thinking_tokens",
+    "estimated_tokens": 61,
+    "estimated_tokens_delta": 1,
+    "session_id": "session-fixture",
+    "uuid": "uuid-fixture"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 0,
+      "delta": {
+        "type": "thinking_delta",
+        "thinking": " 391",
+        "estimated_tokens": null
+      }
+    },
+    "session_id": "session-fixture",
+    "parent_tool_use_id": null,
+    "uuid": "uuid-fixture",
+    "thinking_display": "summarized"
+  },
+  {
+    "type": "system",
+    "subtype": "thinking_tokens",
+    "estimated_tokens": 67,
+    "estimated_tokens_delta": 6,
+    "session_id": "session-fixture",
+    "uuid": "uuid-fixture"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 0,
+      "delta": {
+        "type": "thinking_delta",
+        "thinking": " and 409 for any other",
+        "estimated_tokens": null
+      }
+    },
+    "session_id": "session-fixture",
+    "parent_tool_use_id": null,
+    "uuid": "uuid-fixture",
+    "thinking_display": "summarized"
+  },
+  {
+    "type": "system",
+    "subtype": "thinking_tokens",
+    "estimated_tokens": 68,
+    "estimated_tokens_delta": 1,
+    "session_id": "session-fixture",
+    "uuid": "uuid-fixture"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 0,
+      "delta": {
+        "type": "thinking_delta",
+        "thinking": " dig",
+        "estimated_tokens": null
+      }
+    },
+    "session_id": "session-fixture",
+    "parent_tool_use_id": null,
+    "uuid": "uuid-fixture",
+    "thinking_display": "summarized"
+  },
+  {
+    "type": "system",
+    "subtype": "thinking_tokens",
+    "estimated_tokens": 72,
+    "estimated_tokens_delta": 4,
+    "session_id": "session-fixture",
+    "uuid": "uuid-fixture"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 0,
+      "delta": {
+        "type": "thinking_delta",
+        "thinking": "it-sum-13 cand",
+        "estimated_tokens": null
+      }
+    },
+    "session_id": "session-fixture",
+    "parent_tool_use_id": null,
+    "uuid": "uuid-fixture",
+    "thinking_display": "summarized"
+  },
+  {
+    "type": "system",
+    "subtype": "thinking_tokens",
+    "estimated_tokens": 74,
+    "estimated_tokens_delta": 2,
+    "session_id": "session-fixture",
+    "uuid": "uuid-fixture"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 0,
+      "delta": {
+        "type": "thinking_delta",
+        "thinking": "idates.",
+        "estimated_tokens": null
+      }
+    },
+    "session_id": "session-fixture",
+    "parent_tool_use_id": null,
+    "uuid": "uuid-fixture",
+    "thinking_display": "summarized"
+  },
+  {
+    "type": "system",
+    "subtype": "thinking_tokens",
+    "estimated_tokens": 75,
+    "estimated_tokens_delta": 1,
+    "session_id": "session-fixture",
+    "uuid": "uuid-fixture"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 0,
+      "delta": {
+        "type": "thinking_delta",
+        "thinking": "\n\n",
+        "estimated_tokens": null
+      }
+    },
+    "session_id": "session-fixture",
+    "parent_tool_use_id": null,
+    "uuid": "uuid-fixture",
+    "thinking_display": "summarized"
+  },
+  {
+    "type": "system",
+    "subtype": "thinking_tokens",
+    "estimated_tokens": 77,
+    "estimated_tokens_delta": 2,
+    "session_id": "session-fixture",
+    "uuid": "uuid-fixture"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 0,
+      "delta": {
+        "type": "thinking_delta",
+        "thinking": "Since",
+        "estimated_tokens": null
+      }
+    },
+    "session_id": "session-fixture",
+    "parent_tool_use_id": null,
+    "uuid": "uuid-fixture",
+    "thinking_display": "summarized"
+  },
+  {
+    "type": "system",
+    "subtype": "thinking_tokens",
+    "estimated_tokens": 81,
+    "estimated_tokens_delta": 4,
+    "session_id": "session-fixture",
+    "uuid": "uuid-fixture"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 0,
+      "delta": {
+        "type": "thinking_delta",
+        "thinking": " the user expl",
+        "estimated_tokens": null
+      }
+    },
+    "session_id": "session-fixture",
+    "parent_tool_use_id": null,
+    "uuid": "uuid-fixture",
+    "thinking_display": "summarized"
+  },
+  {
+    "type": "system",
+    "subtype": "thinking_tokens",
+    "estimated_tokens": 85,
+    "estimated_tokens_delta": 4,
+    "session_id": "session-fixture",
+    "uuid": "uuid-fixture"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 0,
+      "delta": {
+        "type": "thinking_delta",
+        "thinking": "icitly said not",
+        "estimated_tokens": null
+      }
+    },
+    "session_id": "session-fixture",
+    "parent_tool_use_id": null,
+    "uuid": "uuid-fixture",
+    "thinking_display": "summarized"
+  },
+  {
+    "type": "system",
+    "subtype": "thinking_tokens",
+    "estimated_tokens": 92,
+    "estimated_tokens_delta": 7,
+    "session_id": "session-fixture",
+    "uuid": "uuid-fixture"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 0,
+      "delta": {
+        "type": "thinking_delta",
+        "thinking": " to call any other tool, I",
+        "estimated_tokens": null
+      }
+    },
+    "session_id": "session-fixture",
+    "parent_tool_use_id": null,
+    "uuid": "uuid-fixture",
+    "thinking_display": "summarized"
+  },
+  {
+    "type": "system",
+    "subtype": "thinking_tokens",
+    "estimated_tokens": 94,
+    "estimated_tokens_delta": 2,
+    "session_id": "session-fixture",
+    "uuid": "uuid-fixture"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 0,
+      "delta": {
+        "type": "thinking_delta",
+        "thinking": " should",
+        "estimated_tokens": null
+      }
+    },
+    "session_id": "session-fixture",
+    "parent_tool_use_id": null,
+    "uuid": "uuid-fixture",
+    "thinking_display": "summarized"
+  },
+  {
+    "type": "system",
+    "subtype": "thinking_tokens",
+    "estimated_tokens": 102,
+    "estimated_tokens_delta": 8,
+    "session_id": "session-fixture",
+    "uuid": "uuid-fixture"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 0,
+      "delta": {
+        "type": "thinking_delta",
+        "thinking": " follow that instruction direct",
+        "estimated_tokens": null
+      }
+    },
+    "session_id": "session-fixture",
+    "parent_tool_use_id": null,
+    "uuid": "uuid-fixture",
+    "thinking_display": "summarized"
+  },
+  {
+    "type": "system",
+    "subtype": "thinking_tokens",
+    "estimated_tokens": 106,
+    "estimated_tokens_delta": 4,
+    "session_id": "session-fixture",
+    "uuid": "uuid-fixture"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 0,
+      "delta": {
+        "type": "thinking_delta",
+        "thinking": "ly even though C",
+        "estimated_tokens": null
+      }
+    },
+    "session_id": "session-fixture",
+    "parent_tool_use_id": null,
+    "uuid": "uuid-fixture",
+    "thinking_display": "summarized"
+  },
+  {
+    "type": "system",
+    "subtype": "thinking_tokens",
+    "estimated_tokens": 109,
+    "estimated_tokens_delta": 3,
+    "session_id": "session-fixture",
+    "uuid": "uuid-fixture"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 0,
+      "delta": {
+        "type": "thinking_delta",
+        "thinking": "LAUDE.md m",
+        "estimated_tokens": null
+      }
+    },
+    "session_id": "session-fixture",
+    "parent_tool_use_id": null,
+    "uuid": "uuid-fixture",
+    "thinking_display": "summarized"
+  },
+  {
+    "type": "system",
+    "subtype": "thinking_tokens",
+    "estimated_tokens": 112,
+    "estimated_tokens_delta": 3,
+    "session_id": "session-fixture",
+    "uuid": "uuid-fixture"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 0,
+      "delta": {
+        "type": "thinking_delta",
+        "thinking": "entions comm",
+        "estimated_tokens": null
+      }
+    },
+    "session_id": "session-fixture",
+    "parent_tool_use_id": null,
+    "uuid": "uuid-fixture",
+    "thinking_display": "summarized"
+  },
+  {
+    "type": "system",
+    "subtype": "thinking_tokens",
+    "estimated_tokens": 117,
+    "estimated_tokens_delta": 5,
+    "session_id": "session-fixture",
+    "uuid": "uuid-fixture"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 0,
+      "delta": {
+        "type": "thinking_delta",
+        "thinking": "its and todo lists.",
+        "estimated_tokens": null
+      }
+    },
+    "session_id": "session-fixture",
+    "parent_tool_use_id": null,
+    "uuid": "uuid-fixture",
+    "thinking_display": "summarized"
+  },
+  {
+    "type": "system",
+    "subtype": "thinking_tokens",
+    "estimated_tokens": 118,
+    "estimated_tokens_delta": 1,
+    "session_id": "session-fixture",
+    "uuid": "uuid-fixture"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 0,
+      "delta": {
+        "type": "thinking_delta",
+        "thinking": "\n\n",
+        "estimated_tokens": null
+      }
+    },
+    "session_id": "session-fixture",
+    "parent_tool_use_id": null,
+    "uuid": "uuid-fixture",
+    "thinking_display": "summarized"
+  },
+  {
+    "type": "system",
+    "subtype": "thinking_tokens",
+    "estimated_tokens": 264,
+    "estimated_tokens_delta": 146,
+    "session_id": "session-fixture",
+    "uuid": "uuid-fixture"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 0,
+      "delta": {
+        "type": "signature_delta",
+        "signature": "CAQSmAgKEAgTGAI4AUIIdGhpbmtpbmcSDANhZDQVb7SZf4OIbRoMgdWzs25RELmLPAINIjDKGNYWreIdblKa19NpUZ5YS4HyL2MS9q91V46/TSHjF5/TKXOSQbMv7XU8HB9mf8EqtQcDtOGZQvyeWKpeczWrco4bIsCxZ8ruVqzx4pYDL0+BkKOwkFRx43S0l3rddqEtF28yjfbbTz756p2TloybwWiMX5DrORexxgBsyE8TngWrWM621c64MmsPyoJOydkcoLiADa9ZxEQI4+IjQXRdaHQoN3e6aFNGmU94cwzEJC91z/IyuxjC4dsldUNnSSFz1AEshQUx0491cgj7ahr0EaQkNwbmpwb7Q1Vf1tJuEVK3dcxVRorpnkYe5WiNL1/A76H9uQnuGuH8g+KlAhJTCq9gnxBXTvFYoSFrxqPs+ooMc7/5mr34KPfueYwgag5MHLyRC3pO9/K62kYtlI5qP9znIlDAlXYzUXPrNT+siQpwKPT5R3anXhxmwygPnaP0led9SM3eBoSL26nBvww+QtMXKM5I8s3bqY/g83BIVBBc55Z7pYDd4q95GsC1/EoXHASzxVTzfpLVOo/sMQHGCMsfc2WqJCjcDgfCYAgiMw1CSjjw4SzSRTBBXXwCoxwhguYQnXX46zmWIXlnQ9ZDyrBeZzzxgU2wgJXVNisd/D8DqwpRIdXpY+RyBq5rkrMcjmwygIjxEFEABvhyl71qplzYfgDU0+zH/G0hOhbnYY/IK4BEKIgMP728jZihovWDMsSrx+DjNroDcQyKtFMEc46Z+wR8usYWmbhzQtCoH7QaWfg70ib4ivtCRr913W4GAnQxtcBM0IGQF+dfLAHUxP3XEJeHaXLs4HX0KmiU6SgSpVqtwt2onj1K5oDTQJ/7f96ErAZgXlKF1Z2enmuuBFKV1T4EdfGs/EnCio5qLZ8QQ+25LcVq0Y9O1zRSHIivzYGHpK+NTzCDKdjbzBU96SeLdKfl/UsiwneqYRZGvJOLU22/ZwB4u0b7XkUDw5LKEbO7IXeNSvwCsxvdS53dP7ONjwfxlB0uL6IrOgMemfKsWYjNiiS4kZIM++8ryvzS3bun8NP5/RoKFlzY2QTOx+iqlXtkB0drYGV+qmI9iwmvbRRXzx2Q+FfbRG329NadDbZrH5p+I5ipVmpnZHrOsnpC88ASqWqtUC7olKniOv1P15PLz7sNDCxVzaADuizZndyDLPWNCYLnjV5W8oxSIE1W1XBYkEc4UFrO61O0S2M2HfPDbl3xdRdvIXuowIAoxOd80JXRIAohusYb2AjZl/z6M1FLTgI5l339glgW8Qu37ArAQECVSoAlLbOLrUGx9yej7IqQqpJ8B6ny7JCMrLmEpkIVwkI+seLiuXVND41KHlxpHAAJGAE="
+      }
+    },
+    "session_id": "session-fixture",
+    "parent_tool_use_id": null,
+    "uuid": "uuid-fixture"
+  },
+  {
+    "type": "assistant",
+    "message": {
+      "model": "claude-opus-5-5",
+      "id": "msg_011CgELR8A8hVbdxqT4AKCPo",
+      "type": "message",
+      "role": "assistant",
+      "content": [
+        {
+          "type": "thinking",
+          "thinking": "Checking numbers above 380 with digit sum 13: 391 factors as 17×23, so it's out. Then I verify 409 is prime by testing divisibility up through its square root, finding no factors, while also scanning between 391 and 409 for any other digit-sum-13 candidates.\n\nSince the user explicitly said not to call any other tool, I should follow that instruction directly even though CLAUDE.md mentions commits and todo lists.\n\n",
+          "signature": "CAQSmAgKEAgTGAI4AUIIdGhpbmtpbmcSDANhZDQVb7SZf4OIbRoMgdWzs25RELmLPAINIjDKGNYWreIdblKa19NpUZ5YS4HyL2MS9q91V46/TSHjF5/TKXOSQbMv7XU8HB9mf8EqtQcDtOGZQvyeWKpeczWrco4bIsCxZ8ruVqzx4pYDL0+BkKOwkFRx43S0l3rddqEtF28yjfbbTz756p2TloybwWiMX5DrORexxgBsyE8TngWrWM621c64MmsPyoJOydkcoLiADa9ZxEQI4+IjQXRdaHQoN3e6aFNGmU94cwzEJC91z/IyuxjC4dsldUNnSSFz1AEshQUx0491cgj7ahr0EaQkNwbmpwb7Q1Vf1tJuEVK3dcxVRorpnkYe5WiNL1/A76H9uQnuGuH8g+KlAhJTCq9gnxBXTvFYoSFrxqPs+ooMc7/5mr34KPfueYwgag5MHLyRC3pO9/K62kYtlI5qP9znIlDAlXYzUXPrNT+siQpwKPT5R3anXhxmwygPnaP0led9SM3eBoSL26nBvww+QtMXKM5I8s3bqY/g83BIVBBc55Z7pYDd4q95GsC1/EoXHASzxVTzfpLVOo/sMQHGCMsfc2WqJCjcDgfCYAgiMw1CSjjw4SzSRTBBXXwCoxwhguYQnXX46zmWIXlnQ9ZDyrBeZzzxgU2wgJXVNisd/D8DqwpRIdXpY+RyBq5rkrMcjmwygIjxEFEABvhyl71qplzYfgDU0+zH/G0hOhbnYY/IK4BEKIgMP728jZihovWDMsSrx+DjNroDcQyKtFMEc46Z+wR8usYWmbhzQtCoH7QaWfg70ib4ivtCRr913W4GAnQxtcBM0IGQF+dfLAHUxP3XEJeHaXLs4HX0KmiU6SgSpVqtwt2onj1K5oDTQJ/7f96ErAZgXlKF1Z2enmuuBFKV1T4EdfGs/EnCio5qLZ8QQ+25LcVq0Y9O1zRSHIivzYGHpK+NTzCDKdjbzBU96SeLdKfl/UsiwneqYRZGvJOLU22/ZwB4u0b7XkUDw5LKEbO7IXeNSvwCsxvdS53dP7ONjwfxlB0uL6IrOgMemfKsWYjNiiS4kZIM++8ryvzS3bun8NP5/RoKFlzY2QTOx+iqlXtkB0drYGV+qmI9iwmvbRRXzx2Q+FfbRG329NadDbZrH5p+I5ipVmpnZHrOsnpC88ASqWqtUC7olKniOv1P15PLz7sNDCxVzaADuizZndyDLPWNCYLnjV5W8oxSIE1W1XBYkEc4UFrO61O0S2M2HfPDbl3xdRdvIXuowIAoxOd80JXRIAohusYb2AjZl/z6M1FLTgI5l339glgW8Qu37ArAQECVSoAlLbOLrUGx9yej7IqQqpJ8B6ny7JCMrLmEpkIVwkI+seLiuXVND41KHlxpHAAJGAE="
+        }
+      ],
+      "container": null,
+      "stop_reason": null,
+      "stop_sequence": null,
+      "stop_details": null,
+      "usage": {
+        "input_tokens": 2,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 29138,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 8,
+        "service_tier": "standard",
+        "inference_geo": "global",
+        "speed": "standard"
+      },
+      "input_transformations": [],
+      "diagnostics": null,
+      "context_management": null
+    },
+    "parent_tool_use_id": null,
+    "session_id": "session-fixture",
+    "uuid": "uuid-fixture",
+    "timestamp": "2026-10-20T23:12:18.520Z",
+    "request_id": "req_011CgELR7m5TpDCMb5SutAdB"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_stop",
+      "index": 0
+    },
+    "session_id": "session-fixture",
+    "parent_tool_use_id": null,
+    "uuid": "uuid-fixture"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_start",
+      "index": 1,
+      "content_block": {
+        "type": "tool_use",
+        "id": "toolu_01T2tFPW7v3SPUfDgBCbF8wM",
+        "name": "mcp__tools__set_headline",
+        "input": {},
+        "caller": {
+          "type": "direct"
+        }
+      }
+    },
+    "session_id": "session-fixture",
+    "parent_tool_use_id": null,
+    "uuid": "uuid-fixture"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 1,
+      "delta": {
+        "type": "input_json_delta",
+        "partial_json": ""
+      }
+    },
+    "session_id": "session-fixture",
+    "parent_tool_use_id": null,
+    "uuid": "uuid-fixture"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 1,
+      "delta": {
+        "type": "input_json_delta",
+        "partial_json": "{\"sectionId\": \"00000000-0"
+      }
+    },
+    "session_id": "session-fixture",
+    "parent_tool_use_id": null,
+    "uuid": "uuid-fixture"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 1,
+      "delta": {
+        "type": "input_json_delta",
+        "partial_json": "000-4000-8000-"
+      }
+    },
+    "session_id": "session-fixture",
+    "parent_tool_use_id": null,
+    "uuid": "uuid-fixture"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 1,
+      "delta": {
+        "type": "input_json_delta",
+        "partial_json": "0000000a1601"
+      }
+    },
+    "session_id": "session-fixture",
+    "parent_tool_use_id": null,
+    "uuid": "uuid-fixture"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 1,
+      "delta": {
+        "type": "input_json_delta",
+        "partial_json": "\", \"headline\": \"409"
+      }
+    },
+    "session_id": "session-fixture",
+    "parent_tool_use_id": null,
+    "uuid": "uuid-fixture"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 1,
+      "delta": {
+        "type": "input_json_delta",
+        "partial_json": "\"}"
+      }
+    },
+    "session_id": "session-fixture",
+    "parent_tool_use_id": null,
+    "uuid": "uuid-fixture"
+  },
+  {
+    "type": "assistant",
+    "message": {
+      "model": "claude-opus-5-5",
+      "id": "msg_011CgELR8A8hVbdxqT4AKCPo",
+      "type": "message",
+      "role": "assistant",
+      "content": [
+        {
+          "type": "tool_use",
+          "id": "toolu_01T2tFPW7v3SPUfDgBCbF8wM",
+          "name": "mcp__tools__set_headline",
+          "input": {
+            "sectionId": "00000000-0000-4000-8000-0000000a1601",
+            "headline": "409"
+          },
+          "caller": {
+            "type": "direct"
+          }
+        }
+      ],
+      "container": null,
+      "stop_reason": null,
+      "stop_sequence": null,
+      "stop_details": null,
+      "usage": {
+        "input_tokens": 2,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 29138,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 8,
+        "service_tier": "standard",
+        "inference_geo": "global",
+        "speed": "standard"
+      },
+      "input_transformations": [],
+      "diagnostics": null,
+      "context_management": null
+    },
+    "parent_tool_use_id": null,
+    "session_id": "session-fixture",
+    "uuid": "uuid-fixture",
+    "timestamp": "2026-10-20T23:12:18.521Z",
+    "request_id": "req_011CgELR7m5TpDCMb5SutAdB",
+    "wire_tool_inputs": {
+      "toolu_01T2tFPW7v3SPUfDgBCbF8wM": {
+        "sectionId": "00000000-0000-4000-8000-0000000a1601",
+        "headline": "409"
+      }
+    },
+    "tool_use_meta": [
+      {
+        "id": "toolu_01T2tFPW7v3SPUfDgBCbF8wM",
+        "display_name": "Set Headline",
+        "server_display_name": "tools"
+      }
+    ]
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_stop",
+      "index": 1
+    },
+    "session_id": "session-fixture",
+    "parent_tool_use_id": null,
+    "uuid": "uuid-fixture"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "message_delta",
+      "delta": {
+        "stop_reason": "tool_use",
+        "stop_sequence": null,
+        "stop_details": null,
+        "container": null
+      },
+      "usage": {
+        "input_tokens": 2,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 29138,
+        "output_tokens": 343,
+        "output_tokens_details": {
+          "thinking_tokens": 244
+        },
+        "iterations": [
+          {
+            "input_tokens": 2,
+            "output_tokens": 343,
+            "cache_read_input_tokens": 29138,
+            "cache_creation_input_tokens": 0,
+            "cache_creation": {
+              "ephemeral_5m_input_tokens": 0,
+              "ephemeral_1h_input_tokens": 0
+            },
+            "type": "message"
+          }
+        ]
+      },
+      "context_management": {
+        "applied_edits": []
+      }
+    },
+    "session_id": "session-fixture",
+    "parent_tool_use_id": null,
+    "uuid": "uuid-fixture"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "message_stop"
+    },
+    "session_id": "session-fixture",
+    "parent_tool_use_id": null,
+    "uuid": "uuid-fixture"
+  },
+  {
+    "type": "user",
+    "message": {
+      "role": "user",
+      "content": [
+        {
+          "tool_use_id": "toolu_01T2tFPW7v3SPUfDgBCbF8wM",
+          "type": "tool_result",
+          "content": [
+            {
+              "type": "text",
+              "text": "Headline of 00000000-0000-4000-8000-0000000a1601 set."
+            }
+          ]
+        }
+      ]
+    },
+    "parent_tool_use_id": null,
+    "session_id": "session-fixture",
+    "uuid": "uuid-fixture",
+    "timestamp": "2026-10-20T23:12:18.541Z",
+    "tool_use_result": [
+      {
+        "type": "text",
+        "text": "Headline of 00000000-0000-4000-8000-0000000a1601 set."
+      }
+    ]
+  },
+  {
+    "type": "system",
+    "subtype": "status",
+    "status": "requesting",
+    "session_id": "session-fixture",
+    "uuid": "uuid-fixture"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "message_start",
+      "message": {
+        "model": "claude-opus-5-5",
+        "id": "msg_011CgELRXTbRYcJnSSM62xLw",
+        "type": "message",
+        "role": "assistant",
+        "content": [],
+        "container": null,
+        "stop_reason": null,
+        "stop_sequence": null,
+        "stop_details": null,
+        "usage": {
+          "input_tokens": 2,
+          "cache_creation_input_tokens": 399,
+          "cache_read_input_tokens": 29138,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 399
+          },
+          "output_tokens": 5,
+          "service_tier": "standard",
+          "inference_geo": "global",
+          "speed": "standard"
+        },
+        "input_transformations": [],
+        "diagnostics": null,
+        "context_management": null
+      }
+    },
+    "session_id": "session-fixture",
+    "parent_tool_use_id": null,
+    "uuid": "uuid-fixture",
+    "ttft_ms": 539,
+    "thinking_display": "summarized"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_start",
+      "index": 0,
+      "content_block": {
+        "type": "text",
+        "text": ""
+      }
+    },
+    "session_id": "session-fixture",
+    "parent_tool_use_id": null,
+    "uuid": "uuid-fixture"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 0,
+      "delta": {
+        "type": "text_delta",
+        "text": "DONE"
+      }
+    },
+    "session_id": "session-fixture",
+    "parent_tool_use_id": null,
+    "uuid": "uuid-fixture"
+  },
+  {
+    "type": "assistant",
+    "message": {
+      "model": "claude-opus-5-5",
+      "id": "msg_011CgELRXTbRYcJnSSM62xLw",
+      "type": "message",
+      "role": "assistant",
+      "content": [
+        {
+          "type": "text",
+          "text": "DONE"
+        }
+      ],
+      "container": null,
+      "stop_reason": null,
+      "stop_sequence": null,
+      "stop_details": null,
+      "usage": {
+        "input_tokens": 2,
+        "cache_creation_input_tokens": 399,
+        "cache_read_input_tokens": 29138,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 399
+        },
+        "output_tokens": 5,
+        "service_tier": "standard",
+        "inference_geo": "global",
+        "speed": "standard"
+      },
+      "input_transformations": [],
+      "diagnostics": null,
+      "context_management": null
+    },
+    "parent_tool_use_id": null,
+    "session_id": "session-fixture",
+    "uuid": "uuid-fixture",
+    "timestamp": "2026-10-20T23:12:19.088Z",
+    "request_id": "req_011CgELRXETYD2ocRRJhnGgr"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_stop",
+      "index": 0
+    },
+    "session_id": "session-fixture",
+    "parent_tool_use_id": null,
+    "uuid": "uuid-fixture"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "message_delta",
+      "delta": {
+        "stop_reason": "end_turn",
+        "stop_sequence": null,
+        "stop_details": null,
+        "container": null
+      },
+      "usage": {
+        "input_tokens": 2,
+        "cache_creation_input_tokens": 399,
+        "cache_read_input_tokens": 29138,
+        "output_tokens": 5,
+        "output_tokens_details": {
+          "thinking_tokens": 0
+        },
+        "iterations": [
+          {
+            "input_tokens": 2,
+            "output_tokens": 5,
+            "cache_read_input_tokens": 29138,
+            "cache_creation_input_tokens": 399,
+            "cache_creation": {
+              "ephemeral_5m_input_tokens": 0,
+              "ephemeral_1h_input_tokens": 399
+            },
+            "type": "message"
+          }
+        ]
+      },
+      "context_management": {
+        "applied_edits": []
+      }
+    },
+    "session_id": "session-fixture",
+    "parent_tool_use_id": null,
+    "uuid": "uuid-fixture"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "message_stop"
+    },
+    "session_id": "session-fixture",
+    "parent_tool_use_id": null,
+    "uuid": "uuid-fixture"
+  },
+  {
+    "duration_api_ms": 6929,
+    "stop_reason": "end_turn",
+    "session_id": "session-fixture",
+    "total_cost_usd": 0.0228642,
+    "usage": {
+      "input_tokens": 4,
+      "cache_creation_input_tokens": 399,
+      "cache_read_input_tokens": 58276,
+      "output_tokens": 348,
+      "output_tokens_details": {
+        "thinking_tokens": 244
+      },
+      "server_tool_use": {
+        "web_search_requests": 0,
+        "web_fetch_requests": 0
+      },
+      "service_tier": "standard",
+      "cache_creation": {
+        "ephemeral_1h_input_tokens": 399,
+        "ephemeral_5m_input_tokens": 0
+      },
+      "inference_geo": "global",
+      "iterations": [
+        {
+          "input_tokens": 2,
+          "output_tokens": 5,
+          "cache_read_input_tokens": 29138,
+          "cache_creation_input_tokens": 399,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 399
+          },
+          "type": "message"
+        }
+      ],
+      "speed": "standard",
+      "fallback_credit": null
+    },
+    "modelUsage": {
+      "claude-haiku-4-5-20251001": {
+        "inputTokens": 981,
+        "outputTokens": 12,
+        "cacheReadInputTokens": 0,
+        "cacheCreationInputTokens": 0,
+        "webSearchRequests": 0,
+        "costUSD": 0.001041,
+        "contextWindow": 200000,
+        "maxOutputTokens": 32000,
+        "thinkingTokens": 0,
+        "canonicalModel": "claude-haiku-4-5",
+        "provider": "firstParty",
+        "costBasis": "list"
+      },
+      "claude-opus-5-5": {
+        "inputTokens": 4,
+        "outputTokens": 348,
+        "cacheReadInputTokens": 58276,
+        "cacheCreationInputTokens": 399,
+        "webSearchRequests": 0,
+        "costUSD": 0.0218232,
+        "contextWindow": 1000000,
+        "maxOutputTokens": 128000,
+        "thinkingTokens": 244,
+        "canonicalModel": "claude-opus-5-5",
+        "provider": "firstParty",
+        "costBasis": "list"
+      }
+    },
+    "permission_denials": [],
+    "terminal_reason": "completed",
+    "fast_mode_state": "off",
+    "fast_mode_disabled_reason": "sdk_opt_in_required",
+    "subagent_stats": {
+      "spawned": 0,
+      "requested": {
+        "background": 0,
+        "foreground": 0,
+        "unset": 0
+      },
+      "started_in_background": 0,
+      "max_depth": 0,
+      "spawned_by_subagents": 0,
+      "completed": 0,
+      "failed": 0,
+      "killed": {
+        "parent": 0,
+        "user": 0,
+        "system": 0
+      },
+      "refused": {
+        "depth_limit": 0,
+        "concurrency_limit": 0,
+        "budget": 0
+      },
+      "by_type": {}
+    },
+    "is_error": false,
+    "num_turns": 2,
+    "subtype": "success",
+    "api_error_status": null,
+    "result": "DONE",
+    "ttft_ms": 5556,
+    "type": "result",
+    "duration_ms": 6129,
+    "uuid": "uuid-fixture",
+    "ttft_stream_ms": 655,
+    "time_to_request_ms": 26,
+    "first_content_frame_ms": 656,
+    "queued_turn_count": 0,
+    "result_index": 0
+  }
+]

@@ -1,0 +1,7 @@
+tags:
+  emulator:
+    # Needs the provider's emulator — LocalStack for aws, Lowkey Vault (an
+    # Azure Key Vault emulator) for azure, a Vault dev server for vault.
+    # tool/run_<provider>_emulator_tests.sh starts one and runs that
+    # provider's emulator tests. Without it the tests skip themselves.
+    timeout: 2x

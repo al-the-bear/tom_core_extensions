@@ -1,0 +1,24 @@
+name: tom_core_sync
+description: >-
+  Keyed three-way merge and background sync for Tom applications: a record
+  codec contract, conflict records, a history store with retention, and a sync
+  engine and scheduler that keep containers converged with their remotes over
+  a compare-and-swap storage port. Platform-neutral.
+version: 0.1.0
+publish_to: none
+repository: https://github.com/al-the-bear/tom_core_extensions
+
+environment:
+  sdk: ^3.10.0
+
+dependencies:
+  meta: ^1.15.0
+  # The structured diagnostics port each sync cycle is recorded through.
+  tom_basics: ">=3.3.0"
+  # The storage port, keyed file media, the commit journal and the rate-limit
+  # vocabulary the engine and the file-medium history store are written over.
+  tom_core_storage:
+    path: ../../core/tom_core_storage
+dev_dependencies:
+  lints: ^6.0.0
+  test: ^1.25.0

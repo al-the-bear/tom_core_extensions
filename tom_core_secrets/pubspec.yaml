@@ -1,0 +1,30 @@
+name: tom_core_secrets
+description: >-
+  Cloud secret stores as secrets providers for Tom servers — configuration
+  values written as secret:<provider>:<path>#<field> references, resolved at
+  start and refreshed on rotation. One library per provider: AWS Secrets
+  Manager (aws.dart), Azure Key Vault (azure.dart), HashiCorp Vault
+  (vault.dart).
+version: 0.1.0
+publish_to: none
+
+repository: https://github.com/al-the-bear/tom_core_extensions
+homepage: https://github.com/al-the-bear/tom_core_extensions/tree/main/tom_core_secrets
+
+environment:
+  sdk: ^3.10.0
+
+dependencies:
+  # SigV4 request signing (aws.dart).
+  crypto: ^3.0.0
+  http: ^1.6.0
+  tom_core_kernel:
+    path: ../../core/tom_core_kernel
+  # The provider contract every library implements (TomSecretsProvider), the
+  # configuration it is registered from, and the AWS SigV4 signer.
+  tom_core_server:
+    path: ../../core/tom_core_server
+
+dev_dependencies:
+  lints: ^6.0.0
+  test: ^1.25.6

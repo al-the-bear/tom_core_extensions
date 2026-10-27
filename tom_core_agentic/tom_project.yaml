@@ -1,0 +1,5 @@
+project_id: CA
+name: core-agentic
+description: >-
+  Generic agentic building blocks (cancellation, close-guard,
+  dedup-by-id, text preview, HTTP-date, YAML config reading)

@@ -1,0 +1,13 @@
+# https://dart.dev/guides/libraries/private-files
+# Created by `dart pub`
+.dart_tool/
+
+# Avoid committing pubspec.lock for library packages; see
+# https://dart.dev/guides/libraries/private-files#pubspeclock.
+pubspec.lock
+
+# The standalone AI server's installed dependency tree. It is large (tens of
+# MB, including per-platform native ripgrep and sharp binaries) and fully
+# reproducible from package-lock.json, which IS committed — so the lockfile is
+# the artifact worth versioning and the tree is not.
+node/node_modules/

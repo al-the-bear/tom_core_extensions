@@ -1,0 +1,14 @@
+include: package:lints/recommended.yaml
+
+analyzer:
+  exclude:
+    # The test suite's generated reflection seed — machine-written, rewritten
+    # by reflection_generation.sh and never edited by hand.
+    - "test/fixtures/*.reflection.dart"
+
+linter:
+  rules:
+    # Every public member carries a doc comment; the lint makes `dart analyze`
+    # the ratchet rather than a later coverage sweep.
+    public_member_api_docs: true
+    comment_references: true

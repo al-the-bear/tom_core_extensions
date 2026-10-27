@@ -1,0 +1,11 @@
+# The test reflection root: the generator follows its import graph and writes
+# test/fixtures/openapi_fixture.reflection.dart, whose initializeReflection()
+# the suite calls in setUpAll.
+targets:
+  $default:
+    builders:
+      tom_reflection_generator:reflection_generator:
+        generate_for:
+          - test/fixtures/openapi_fixture.dart
+        options:
+          formatted: true
