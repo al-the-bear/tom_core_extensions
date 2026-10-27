@@ -150,6 +150,10 @@ final class StandaloneNodeAiTransport implements AgentSdkInstallableTransport {
   /// whatever is already in the environment", which is how a developer machine
   /// with `ANTHROPIC_API_KEY` exported, or logged in to Claude Code, already
   /// works. The app never reads the value back out of the child.
+  ///
+  /// An empty key is refused when the transport is built: it can never
+  /// authenticate, and as the only credential it would cut the child off from
+  /// the ambient login and fail at the far end as a rejected credential.
   final String? apiKey;
 
   /// Environment variables of the app's own that the child must not inherit
@@ -236,7 +240,16 @@ final class StandaloneNodeAiTransport implements AgentSdkInstallableTransport {
            serverScript ??
            installer?.serverScript ??
            resolveDefaultServerScript(),
-       _channelFactory = channelFactory;
+       _channelFactory = channelFactory {
+    if (apiKey != null && apiKey!.isEmpty) {
+      throw ArgumentError.value(
+        apiKey,
+        'apiKey',
+        'is empty; pass null to let the server use the environment\'s '
+            'credential',
+      );
+    }
+  }
 
   /// The transport a packaged app uses: the server installed under
   /// [appDataDirectory], from the source the app carries beside its

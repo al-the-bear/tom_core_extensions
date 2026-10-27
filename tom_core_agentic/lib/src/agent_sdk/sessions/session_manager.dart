@@ -8,6 +8,13 @@
 /// session, cancels — stopping an isolate that does not stop in
 /// [cancelGrace] — and records a session's death in its trail without letting
 /// it reach any other.
+///
+/// A session belongs to the manager, not to the caller that first ran in it:
+/// its isolate's ports, the in-process worker's messages and the cancel timer
+/// all live in the zone the manager was built in. A caller's zone can stop
+/// running — a widget test's body ends, and its fake-async zone with it — and
+/// a session opened from there would otherwise hand every later run's events
+/// on through a zone nothing runs.
 library;
 
 import 'dart:async';
@@ -45,6 +52,9 @@ final class AgentSdkSessionManager {
 
   /// How long a cancelled run may take to stop before its isolate is.
   final Duration cancelGrace;
+
+  /// The zone the manager was built in, where its sessions run.
+  final Zone _zone = Zone.current;
 
   final Map<String, _Session> _sessions = {};
   var _nextRun = 0;
@@ -201,7 +211,7 @@ class _Session {
       if (!identical(_transport, transport)) {
         await close(reason: LlmSessionCloseReason.closed);
       }
-      await (_starting ??= _open(transport));
+      await (_starting ??= manager._zone.run(() => _open(transport)));
     } on Object catch (e) {
       _starting = null;
       _fail(run, 'The $id AI session could not start (${e.runtimeType}).');
@@ -247,11 +257,12 @@ class _Session {
       case AgentSdkSessionHosting.inProcess:
         final worker = AiSessionWorker(
           transport,
-          (message) => scheduleMicrotask(() => _fromWorker(message)),
+          (message) =>
+              manager._zone.scheduleMicrotask(() => _fromWorker(message)),
         );
         _local = worker;
         _toWorker = (message) =>
-            scheduleMicrotask(() => worker.receive(message));
+            manager._zone.scheduleMicrotask(() => worker.receive(message));
       case AgentSdkSessionHosting.isolate:
         final copy = transport.sessionCopy;
         if (copy == null) {
@@ -431,7 +442,7 @@ class _Session {
       return;
     }
     send({'op': 'cancel', 'runId': run.id});
-    _cancelTimer = Timer(manager.cancelGrace, () {
+    _cancelTimer = manager._zone.createTimer(manager.cancelGrace, () {
       // It did not stop: stop the session, so the next run
       // starts on a fresh one.
       unawaited(

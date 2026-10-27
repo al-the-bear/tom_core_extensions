@@ -81,6 +81,17 @@ void main() {
     );
   });
 
+  test('an empty key is refused when the transport is built, '
+      'never handed to a child as its only credential', () {
+    expect(
+      () => StandaloneNodeAiTransport(
+        node: llmNodeAt(standInExecutable),
+        apiKey: '',
+      ),
+      throwsA(isA<ArgumentError>().having((e) => e.name, 'name', 'apiKey')),
+    );
+  });
+
   test('two children never share a configuration directory '
       '', () async {
     final dirs = <String>[];

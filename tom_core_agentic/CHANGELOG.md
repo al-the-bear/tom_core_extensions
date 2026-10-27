@@ -57,6 +57,16 @@
 - **`promptSha256`** is `'sha256:'` + `tom_basics`' `tomSha256OfText`; the
   digest is unchanged. `crypto` moves to `dev_dependencies` (the test checks
   the digest against it independently), and the `tom_basics` floor is 3.3.0.
+- **A session belongs to its manager, not to its first caller.**
+  `AgentSdkSessionManager` opens a session's isolate ports, in-process worker
+  messages and cancel timer in the zone the manager was built in. Opened from
+  the caller's zone, a session handed every later run's events through a zone
+  that had stopped running — a second widget test over one manager never heard
+  its answer.
+- **Breaking: `StandaloneNodeAiTransport` refuses an empty `apiKey`**
+  (`ArgumentError`). It was taken as the only credential, cutting the child off
+  from the ambient login, and failed at the far end as a rejected credential.
+  Pass null to use the environment's.
 
 ### Tests
 

@@ -354,6 +354,12 @@ transport's connection, the request loop and the liveness bound, and is kept
 between runs; two sessions run at once, and a death, a hang or a cancel in one
 leaves the other running.
 
+A session belongs to the manager, not to the caller that first ran in it: its
+isolate's ports, the in-process worker's messages and the cancel timer live in
+the zone the manager was built in. A caller's zone may stop running — a widget
+test's body ends, and its fake-async zone with it — and the next run, from
+another caller, is still answered.
+
 - **What crosses.** A transport cannot be sent to an isolate, so each answers
   `sessionCopy`: a function over primitives that builds a copy of it there. The
   hosted copy reuses the port the selector found; the standalone copy starts
@@ -444,7 +450,9 @@ can use.** With `apiKey` given, the child starts without any of the app's
 `ANTHROPIC_*` or `CLAUDE*` variables and with `CLAUDE_CONFIG_DIR` pointing at
 an empty directory of its own, so the machine's Claude Code login cannot
 answer in place of the key. With no key the child inherits the app's
-environment, and the ambient login answers. `scrubbedVariables` names any
+environment, and the ambient login answers. An empty key is refused when the
+transport is built (`ArgumentError`): it would cut the child off from the
+ambient login and could never authenticate. `scrubbedVariables` names any
 further variable of the app's own — a session token it was launched with —
 that the child, a tool-running process, must not inherit.
 
