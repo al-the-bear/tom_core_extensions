@@ -1,7 +1,6 @@
 name: tom_core_openapi
 description: OpenAPI 3.1 for Tom servers — generates the document from the endpoint annotations and reflected DTOs, validates it, and generates a typed Dart client from it. A tom_build_base command-line tool.
 version: 0.1.0
-publish_to: none
 
 repository: https://github.com/al-the-bear/tom_core_extensions
 homepage: https://github.com/al-the-bear/tom_core_extensions/tree/main/tom_core_openapi

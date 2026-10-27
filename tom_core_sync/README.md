@@ -1,7 +1,9 @@
 # tom_core_sync
 
+Published on pub.dev as [`tom_core_sync` 0.1.0](https://pub.dev/packages/tom_core_sync).
+
 > **Attribution.** The Tom Framework is developed by Peter Nicolai Alexis Kyaw.
-> These packages are BSD-3-Clause licensed and internal (`publish_to: none`).
+> These packages are BSD-3-Clause licensed and published on pub.dev.
 
 Keyed three-way merge and background sync for Tom applications — a record
 codec contract and the merge it drives, conflict records, a history store with
@@ -50,12 +52,11 @@ conflict queue and one status surface.
 
 ## Installation
 
-The package is consumed by path inside this workspace:
+Add it from pub.dev:
 
 ```yaml
 dependencies:
-  tom_core_sync:
-    path: ../../tom_ai/core_extension/tom_core_sync
+  tom_core_sync: ^0.1.0
 ```
 
 Dart SDK `^3.10.0`. No Flutter dependency.

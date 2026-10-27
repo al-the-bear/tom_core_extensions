@@ -1,7 +1,9 @@
 # tom_core_secrets
 
+Published on pub.dev as [`tom_core_secrets` 0.1.0](https://pub.dev/packages/tom_core_secrets).
+
 > **Attribution.** The Tom Framework is developed by Peter Nicolai Alexis Kyaw.
-> These packages are BSD-3-Clause licensed and internal (`publish_to: none`).
+> These packages are BSD-3-Clause licensed and published on pub.dev.
 
 Cloud secret stores as secrets providers for Tom servers — configuration values
 written as `secret:<provider>:<path>#<field>` references, resolved at boot and
@@ -20,14 +22,12 @@ client application keeps its settings key in is a different thing — it is
 
 ## Installation
 
-The package is consumed by path inside the workspace, beside `tom_core_server`:
+Add it from pub.dev:
 
 ```yaml
 dependencies:
-  tom_core_server:
-    path: ../../core/tom_core_server
-  tom_core_secrets:
-    path: ../../core_extension/tom_core_secrets
+  tom_core_server: ^1.3.0
+  tom_core_secrets: ^0.1.0
 ```
 
 Dart SDK `^3.10.0`. A server imports the library of the provider it registers.

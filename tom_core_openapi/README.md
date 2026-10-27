@@ -1,7 +1,9 @@
 # tom_core_openapi
 
+Published on pub.dev as [`tom_core_openapi` 0.1.0](https://pub.dev/packages/tom_core_openapi).
+
 > **Attribution.** The Tom Framework is developed by Peter Nicolai Alexis Kyaw.
-> These packages are BSD-3-Clause licensed and internal (`publish_to: none`).
+> These packages are BSD-3-Clause licensed and published on pub.dev.
 
 OpenAPI 3.1 for Tom servers. It writes a server's OpenAPI document from the
 endpoint annotations and reflected DTOs the server already has, validates any
@@ -30,13 +32,11 @@ it fails when the file is not what the annotations generate today.
 
 ## Installation
 
-The package is consumed by path inside this repository, as a
-**`dev_dependency`** of the server whose document it writes:
+Add it from pub.dev, as a **`dev_dependency`** of the server whose document it writes:
 
 ```yaml
 dev_dependencies:
-  tom_core_openapi:
-    path: .
+  tom_core_openapi: ^0.1.0
 ```
 
 ```dart

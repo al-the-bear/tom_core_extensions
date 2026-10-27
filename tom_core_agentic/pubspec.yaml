@@ -11,7 +11,6 @@ description: >-
   (JSON-schema arguments, a closed registry, an in-process MCP server, a
   permission scope, consent, an audit trail and preview-then-apply runs).
 version: 1.9.0
-publish_to: none
 repository: https://github.com/al-the-bear/tom_core_extensions
 
 environment:
@@ -21,7 +20,7 @@ dependencies:
   meta: ^1.15.0
   # The structured diagnostics port the Agent SDK session manager logs
   # through.
-  tom_basics: ">=3.3.0"
+  tom_basics: ^3.3.0
   # The provider contract the Agent SDK provider implements and an agent tool
   # binding presents (LlmToolBinding), and the run events it streams.
   tom_llm:
