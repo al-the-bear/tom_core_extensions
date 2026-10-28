@@ -1,15 +1,11 @@
 name: tom_core_agentic
 description: >-
-  Building blocks for agentic systems in the TOM framework: cooperative
-  cancellation, lifecycle close-guards, dedup-by-id, text previews, HTTP-date
-  parsing, typed YAML config reading, the sha256 content-hash convention and
-  the editor-facing agent data models (profiles, prompt queue, chat/trail,
-  reminders, timed requests); in `agent_sdk.dart`, Anthropic's Claude Agent
-  SDK as an LLM provider (a running VS Code CLI server or a standalone Node
-  server, sessions each in an isolate, an availability gate and an on-demand
-  server install); and in `agent_tools.dart`, a tool surface for LLM agents
-  (JSON-schema arguments, a closed registry, an in-process MCP server, a
-  permission scope, consent, an audit trail and preview-then-apply runs).
+  Building blocks for agentic systems in the TOM framework: cancellation,
+  close-guards, typed config reading and the agent data models (profiles,
+  prompt queue, chat and trail); Anthropic's Claude Agent SDK as an LLM
+  provider (agent_sdk.dart); and a tool surface for LLM agents with a closed
+  registry, an in-process MCP server, consent and an audit trail
+  (agent_tools.dart).
 version: 1.9.0
 repository: https://github.com/al-the-bear/tom_core_extensions
 
