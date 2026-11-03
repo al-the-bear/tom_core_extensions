@@ -109,6 +109,7 @@ Stream<LlmEvent> boundedAiRun(
   List<LlmEvent> prelude = const [],
   void Function(LlmTransportException failure)? onFailure,
   void Function(String messageType)? onUnmapped,
+  void Function(String conversationId)? onConversation,
 }) {
   final controller = StreamController<LlmEvent>();
   StreamSubscription<AgentSdkCompletionEvent>? subscription;
@@ -182,6 +183,8 @@ Stream<LlmEvent> boundedAiRun(
               return;
             }
             controller.add(event);
+          case AgentSdkConversation(:final id):
+            onConversation?.call(id);
           case AgentSdkLiveness(:final unmappedType?):
             if (unmapped.add(unmappedType)) onUnmapped?.call(unmappedType);
           case AgentSdkLiveness():

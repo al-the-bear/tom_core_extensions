@@ -40,7 +40,6 @@ const expectedDirectImporters = <String>{
   'src/agent/queue_template_store.dart',
   'src/agent/reminder_template_store.dart',
   'src/agent/timed_request_store.dart',
-  'src/llm/agent_sdk_session.dart',
   'src/path_scope_io.dart',
   'src/placeholders/placeholder_resolver.dart',
 };
@@ -52,7 +51,6 @@ const expectedDirectImporters = <String>{
 /// would drop two entries from this set, not one.
 const expectedCoupledExports = <String>{
   'src/agent/agent.dart',
-  'src/llm/llm.dart',
   'src/path_scope_io.dart',
   'src/placeholders/placeholders.dart',
   'src/yaml_config_reader.dart',
@@ -172,7 +170,7 @@ void main() {
             'that only uses the clean subset relies on this; update README.md.',
       );
       // The README states both halves of the split, so pin both.
-      expect(exports.length - coupled.length, equals(29));
+      expect(exports.length - coupled.length, equals(30));
     });
 
     test('the README states the measured figures', () {

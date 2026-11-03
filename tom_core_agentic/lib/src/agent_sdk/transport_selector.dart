@@ -51,7 +51,8 @@ final class AgentSdkNotice {
 /// follows because starting a process is the fallback, not the default.
 final class AgentSdkTransportSelector {
   /// The candidates, in preference order.
-  final List<AgentSdkServerTransport> candidates;
+  List<AgentSdkServerTransport> get candidates => _candidates;
+  List<AgentSdkServerTransport> _candidates;
 
   final StreamController<AgentSdkNotice> _notices =
       StreamController<AgentSdkNotice>.broadcast();
@@ -64,7 +65,8 @@ final class AgentSdkTransportSelector {
   AgentSdkInstallableTransport? _installable;
   bool _installing = false;
 
-  AgentSdkTransportSelector(this.candidates);
+  AgentSdkTransportSelector(List<AgentSdkServerTransport> candidates)
+    : _candidates = candidates;
 
   /// The selected transport, or null when none is reachable.
   AgentSdkServerTransport? get active => _active;
@@ -242,6 +244,29 @@ final class AgentSdkTransportSelector {
     _unavailableKind = AgentSdkUnavailableKind.unreachable;
     _installable = null;
     _report({id: error.message});
+  }
+
+  /// Replaces the candidates — an endpoint the user moved, such as the CLI
+  /// server's port — and closes the old ones. The gate is shut until the
+  /// next [initialize] or [retry] selects among the new candidates; a
+  /// session still on an old transport restarts on the next run's.
+  Future<void> replaceCandidates(
+    List<AgentSdkServerTransport> candidates,
+  ) async {
+    final old = _candidates;
+    _candidates = candidates;
+    _active = null;
+    _unavailableReason = null;
+    _unavailableKind = null;
+    _installable = null;
+    for (final candidate in old) {
+      try {
+        await candidate.close();
+      } on Object {
+        // Best-effort, as in [dispose]: the old endpoint may already be gone,
+        // which is usually why it is being replaced.
+      }
+    }
   }
 
   /// Closes every candidate, including ones never selected (a candidate that

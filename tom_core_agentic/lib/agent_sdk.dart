@@ -8,6 +8,7 @@
 /// app through an in-process MCP server.
 library;
 
+export 'src/agent_sdk/resume.dart';
 export 'src/agent_sdk/server_payload.dart';
 export 'src/agent_sdk/session_provider.dart';
 export 'src/agent_sdk/sessions/session_manager.dart';

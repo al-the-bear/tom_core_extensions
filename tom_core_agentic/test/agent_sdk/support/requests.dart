@@ -4,8 +4,8 @@ library;
 import 'package:tom_llm/tom_llm.dart';
 
 /// A request for [purpose] with [instruction] as the user channel and
-/// [context] as the system channel — the shape the transports put on the wire
-/// as the instruction followed by the context.
+/// [context] as the system channel — put on the wire as the prompt's combined
+/// body, the context followed by the instruction.
 LlmRequest testRequest({
   String purpose = 'generate',
   String instruction = '',

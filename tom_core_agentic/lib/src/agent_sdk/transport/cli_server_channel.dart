@@ -152,46 +152,67 @@ final class CliServerAiChannel {
 
     controller.onListen = () {
       final tools = request.tools;
+      final loop = request.agentLoop;
       final query = _agent.query(
-        prompt: request.wirePrompt,
-        options: Options(
-          model: request.model,
-          systemPrompt: request.systemPrompt == null
-              ? null
-              : SystemPromptText(request.systemPrompt!),
-          // The SDK's own tools are off in every request: no file, no shell,
-          // no web. A plain completion gets nothing else and one turn — it
-          // must not be able to act on anything. An agent run gets exactly
-          // the tools it was handed, declared on an in-process MCP
-          // server whose calls come back to [tools] over this connection, and
-          // only those are allowed; `strictMcpConfig` keeps every MCP server
-          // from the far end's own settings out.
-          tools: const ToolsList([]),
-          allowedTools: tools == null
-              ? const []
-              : [
-                  for (final declaration in tools.declarations)
-                    agentSdkMcpToolName(tools.serverName, declaration.name),
-                ],
-          mcpServers: tools == null ? null : _toolOptions(tools, alive),
-          strictMcpConfig: tools == null ? null : true,
-          maxTurns: tools == null ? 1 : agentRunMaxTurns,
-          // What makes the provider's gap bound a *gap* bound rather than a
-          // disguised budget on model latency. Without this the only messages
-          // in a run are `system/init`, the finished assistant message, and
-          // the result — so a model that thinks for two minutes before its
-          // first token is indistinguishable on this socket from one that has
-          // died, and the bound would abandon exactly the completions worth
-          // waiting for. The events are reported as liveness and otherwise
-          // ignored: text is emitted from the assembled `SdkAssistantMessage`
-          // alone, so nothing is delivered twice.
-          includePartialMessages: true,
-          // The trail shows the model's thinking, so the query asks
-          // for it: adaptive, so the model decides how much a request needs,
-          // and summarized, so what reaches the trail is readable.
-          thinking: const ThinkingAdaptive(display: 'summarized'),
-        ),
+        prompt: request.prompt,
+        options: loop == null
+            ? Options(
+                model: request.model,
+                systemPrompt: request.systemPrompt == null
+                    ? null
+                    : SystemPromptText(request.systemPrompt!),
+                // The SDK's own tools are off: no file, no shell, no web. A
+                // plain completion gets nothing else and one turn — it must
+                // not be able to act on anything. An agent run gets exactly
+                // the tools it was handed, declared on an in-process MCP
+                // server whose calls come back to [tools] over this
+                // connection, and only those are allowed; `strictMcpConfig`
+                // keeps every MCP server from the far end's own settings out.
+                tools: const ToolsList([]),
+                allowedTools: tools == null
+                    ? const []
+                    : [
+                        for (final declaration in tools.declarations)
+                          agentSdkMcpToolName(
+                            tools.serverName,
+                            declaration.name,
+                          ),
+                      ],
+                mcpServers: tools == null ? null : _toolOptions(tools, alive),
+                strictMcpConfig: tools == null ? null : true,
+                maxTurns: tools == null ? 1 : agentRunMaxTurns,
+                resume: request.resume,
+                includePartialMessages: true,
+                thinking: const ThinkingAdaptive(display: 'summarized'),
+              )
+            // Claude Code's own loop: its tools and MCP servers, its turns,
+            // its permission posture. Its system prompt is kept unless the
+            // request names one (and then replaced by it).
+            : Options(
+                model: request.model,
+                systemPrompt: request.systemPrompt == null
+                    ? null
+                    : SystemPromptText(request.systemPrompt!),
+                mcpServers: tools == null ? null : _toolOptions(tools, alive),
+                maxTurns: loop.maxTurns,
+                permissionMode: PermissionMode.fromWire(loop.permissionMode),
+                resume: request.resume,
+                includePartialMessages: true,
+                thinking: const ThinkingAdaptive(display: 'summarized'),
+              ),
       );
+      // `includePartialMessages` is what makes the provider's gap bound a
+      // *gap* bound rather than a disguised budget on model latency. Without
+      // it the only messages in a run are `system/init`, the finished
+      // assistant message, and the result — so a model that thinks for two
+      // minutes before its first token is indistinguishable on this socket
+      // from one that has died. The partial events are reported as liveness
+      // and otherwise ignored: text is emitted from the assembled
+      // `SdkAssistantMessage` alone, so nothing is delivered twice. The
+      // thinking is asked for because the trail shows it: adaptive, so the
+      // model decides how much a request needs, and summarized, so what
+      // reaches the trail is readable.
+      String? conversation;
 
       // every message as its trail events, the text included.
       final translator = SdkTrailTranslator(
@@ -217,6 +238,11 @@ final class CliServerAiChannel {
               ),
             );
             return;
+          }
+          final id = message.raw['session_id'];
+          if (id is String && id.isNotEmpty && id != conversation) {
+            conversation = id;
+            controller.add(AgentSdkConversation(id));
           }
           translator.translate(message).forEach(controller.add);
           if (message case SdkResultMessage(isError: true, :final result)) {

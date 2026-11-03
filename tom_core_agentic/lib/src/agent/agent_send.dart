@@ -15,13 +15,12 @@
 //   * hold a per-spec SDK session id in a YAML sidecar ([SpecSessionStore]),
 //     auto-refreshed on a session error.
 //
-// It is intentionally **separate** from the substrate `AgentSdkLlmProvider`
-// (also in this package): that provider serves the brain's `LlmProvider` seam
-// with `WirePrompt`/`LlmCallReport` and the conservative brain session matcher;
-// the editor sends a plain prompt string, assembles a far wider `Options`
-// surface, and uses a broader session-error rule. The ~20-line stream loop
-// they share in shape will diverge in substance, so they are kept apart by
-// design.
+// It is **not** a `tom_llm` provider: the package's one Agent SDK provider is
+// `AgentSdkSessionProvider` (`agent_sdk.dart`), which serves the `LlmProvider`
+// seam with `WirePrompt`/`LlmCallReport`, its transports, sessions and gate.
+// The editor talks to the scripting API's `AgentSdkClient` directly, assembles
+// a far wider `Options` surface from its profiles, and uses a broader
+// session-error rule than the provider's resume matcher.
 
 import 'dart:async';
 import 'dart:io';
@@ -38,8 +37,8 @@ import 'agent_sidecar.dart';
 /// editor rule: its text contains `session`, `message`, or `msg`
 /// (case-insensitive).
 ///
-/// Deliberately broad — unlike the brain's conservative matcher
-/// (`agentSdkLooksLikeSessionError`) it does not require a separate failure cue.
+/// Deliberately broad — unlike the provider's conservative matcher
+/// (`agentSdkLooksLikeResumeError`) it does not require a separate failure cue.
 /// The editor would rather drop and refresh a per-spec session id one extra
 /// time than leave a stale id wedged in place.
 bool specSessionLooksLikeError(String message) {

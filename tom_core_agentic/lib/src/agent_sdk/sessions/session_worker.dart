@@ -20,6 +20,8 @@
 /// - `{op: toolCall, runId, callSerial, name, arguments}` — a tool call,
 ///  which the main isolate executes against the document it owns.
 /// - `{op: unmapped, type}` — a far-end message type the translator does not map.
+/// - `{op: conversation, runId, id}` — the far end named the run's
+///  conversation, the id a later run resumes it by.
 /// - `{op: done, runId}` — the run ended; `{op: cancelled, runId}` — a
 ///  cancel took effect.
 library;
@@ -64,9 +66,14 @@ final class AiSessionWorker {
     final declarations = request['tools'] as List?;
     final completion = AgentSdkCompletionRequest(
       prompt: request['prompt']! as String,
-      context: request['context'] as String? ?? '',
       systemPrompt: request['systemPrompt'] as String?,
       model: request['model'] as String?,
+      resume: request['resume'] as String?,
+      agentLoop: request['agentLoop'] == null
+          ? null
+          : AgentSdkAgentLoop.fromMap(
+              (request['agentLoop']! as Map).cast<String, Object?>(),
+            ),
       tools: declarations == null
           ? null
           : AgentSdkToolSet(
@@ -95,6 +102,8 @@ final class AiSessionWorker {
           transportId: _transport.id,
           prelude: prelude,
           onUnmapped: (type) => _send({'op': 'unmapped', 'type': type}),
+          onConversation: (id) =>
+              _send({'op': 'conversation', 'runId': runId, 'id': id}),
         ).listen(
           (event) =>
               _send({'op': 'event', 'runId': runId, 'event': event.toMap()}),

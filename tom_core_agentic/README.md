@@ -32,13 +32,12 @@ This package uses them and declares none of them; import them from there.
 
 The package as a whole is **not** `dart:io`-free and does not claim to
 be. This section is about the main barrel; `agent_sdk.dart` spawns processes
-by purpose, and `agent_tools.dart` is `dart:io`-free as a whole. 15 files of the main library import `dart:io`, and 5 of the 34 barrel
+by purpose, and `agent_tools.dart` is `dart:io`-free as a whole. 14 files of the main library import `dart:io`, and 4 of the 34 barrel
 exports reach one of them — directly or transitively:
 
 | Coupled barrel export | Reaches | Through |
 |-----------------------|--------:|---------|
 | `src/agent/agent.dart` | 13 | nine file-backed stores, `agent_send.dart`, `agent_sidecar.dart`, `bridge_connection.dart`, and `placeholder_resolver.dart` through the editor placeholder bindings |
-| `src/llm/llm.dart` | 1 | `agent_sdk_session.dart` (subprocess transport) |
 | `src/path_scope_io.dart` | 1 | itself — it *is* the `dart:io` half of `PathScope`, by design |
 | `src/placeholders/placeholders.dart` | 1 | `placeholder_resolver.dart` (`Platform.environment` default) |
 | `src/yaml_config_reader.dart` | 1 | `placeholder_resolver.dart`, via `${…}` expansion |
@@ -48,7 +47,7 @@ reads this section and fails when a number here stops matching the import
 graph. The counts were prose once and went stale the first time a module
 gained an import.
 
-The remaining **29 exports are `dart:io`-free**, and that subset is what
+The remaining **30 exports are `dart:io`-free**, and that subset is what
 makes the package usable from `dart:io`-forbidding consumers. The one in
 the tree today, `tom_brain_shared`, uses seven symbols
 (`requireNonEmpty`, `textPreview`, and the five `collection_equality`
@@ -129,8 +128,6 @@ One prose page per module with a surface worth explaining, under
 | [`doc/api/api_summary_agent.md`](doc/api/api_summary_agent.md) | The symbol-level mirror of the same unit: every exported type, top-level function and constant with a section, held complete by `test/api_summary_test.dart` |
 | [`doc/bearer_auth.md`](doc/bearer_auth.md) | The transport-neutral bearer-token contract and its three failure reasons |
 | [`doc/mcp_auth.md`](doc/mcp_auth.md) | The MCP-specific `_meta` slot and JSON-RPC refusal code over that contract |
-| [`doc/llm.md`](doc/llm.md) | The Agent SDK provider over the `tom_llm` contract: its control inversion and single retry, and the three session strategies |
-| [`doc/api/api_summary_llm.md`](doc/api/api_summary_llm.md) | The symbol-level mirror of the same unit: six types with a section each and the session-error matcher |
 | [`doc/isolate_streaming.md`](doc/isolate_streaming.md) | Streaming results back across an isolate boundary |
 | [`doc/api/api_summary_isolate_streaming.md`](doc/api/api_summary_isolate_streaming.md) | The symbol-level mirror of the same unit: twelve types with a section each, and which side of the boundary each lives on |
 | [`doc/placeholders.md`](doc/placeholders.md) | The placeholder engine: forms, scope stack, recursion and typed failures |
@@ -204,11 +201,42 @@ and no credential store.
   prelude, the far end's start, thinking and text as they stream, each tool
   call with its result, retries, usage and exactly one end — and the end of a
   completed run carries its `LlmCallReport`, kept by an `LlmRunAccount` from the
-  run's own events. It sends a request's two channels as they are: the
-  instruction (user channel) followed by the context (system channel).
+  run's own events and attributed to the request's prompt (its anchor hash,
+  body hash and template). It sends the prompt's `WirePrompt.combined` body
+  unchanged — the Agent SDK has no system channel for a query.
   `agentToolsEnabled` is a switch read on every request: while it answers
   false the provider reports `canUseTools: false` and refuses a request that
-  carries tools, before anything is sent.
+  carries tools, before anything is sent. It is the package's one Agent SDK
+  provider, for an app's AI actions and for a backend that is itself an agent
+  (the brain), which configures four things more:
+  - **`agentLoop`** (`AgentSdkAgentLoop`) hands each run to Claude Code's own
+    loop — its tools and MCP servers, `maxTurns`, `permissionMode` — where an
+    app's runs get the SDK's tools off and one turn, or only the tools they
+    were handed.
+  - **`resume`** (`AgentSdkResumeStrategy`) continues the far end's
+    conversation across requests: `AgentSdkStoredResume` keeps the
+    conversation id the far end names (`AgentSdkConversation`) in an
+    `AgentSdkResumeStore` keyed by the caller's session, and
+    `AgentSdkQuestResume` reads the one a VS Code window's quest history
+    holds, read-only. A resumed conversation the far end does not know
+    (`agentSdkLooksLikeResumeError`) is evicted and retried once, fresh, while
+    no text has been delivered; the run's report counts the retry.
+  - **`whenBusy`** (`AgentSdkWhenBusy`): `refuse` a run in a busy session
+    (`LlmSessionBusyException`), or `queue` it until the session is free. A
+    backend that opens a session per caller also gives the
+    `AgentSdkSessionManager` an `idleClose`, after which an idle session's
+    isolate is stopped; its next run starts it again.
+  - **`connectOnDemand`**: a run with no active transport first asks the
+    selector to try again, and when nothing answers ends as a failed run
+    whose reason is the selector's; `AgentSdkTransportSelector.replaceCandidates`
+    moves the provider to another endpoint.
+  - **`attribution`** (`AgentSdkRunAttribution`): a run names the transport
+    that served it (the default), or the provider's own `id` — what a router
+    choosing among providers attributes it to.
+
+  With `agentLoop` set, the tool calls Claude Code makes are recorded in the
+  trails and left out of the run's stream: they are its loop's, and a caller
+  that runs the tool calls a provider reports must not be handed them.
 - **`AgentSdkServerTransport`** is the seam, and it names nothing about VS
   Code, Node, sockets or processes: send a composed prompt, stream the run's
   events back, report failures as `LlmTransportException` with a kind, cancel
@@ -284,7 +312,9 @@ the last two.
 | `AgentSdkServerTransport`, `AgentSdkInstallableTransport` | The transport seam; a transport whose server the user installs. |
 | `HostedCliServerAiTransport`, `discoverHostedAiWorkspaces`, `AgentSdkWorkspaceCandidate` | A running VS Code's CLI server; the windows that answer a scan. |
 | `StandaloneNodeAiTransport`, `agentSdkChildEnvironment` | A Node server the app starts and owns; the environment its child gets. |
-| `AgentSdkCompletionRequest`, `AgentSdkToolSet`, `AgentSdkCompletionEvent` | What a transport is handed and what it streams back. |
+| `AgentSdkCompletionRequest`, `AgentSdkToolSet`, `AgentSdkAgentLoop`, `AgentSdkCompletionEvent`, `AgentSdkConversation` | What a transport is handed and what it streams back. |
+| `AgentSdkResumeStrategy`, `AgentSdkStoredResume`, `AgentSdkResumeStore`, `AgentSdkQuestResume`, `agentSdkLooksLikeResumeError` | Continuing the far end's conversation across requests. |
+| `AgentSdkWhenBusy`, `AgentSdkRunAttribution` | Refusing or queueing a run in a busy session; whom a run is attributed to. |
 | `CliServerAiChannel`, `agentSdkMcpToolName` | The wire both transports hold; how a relayed tool is named to the model. |
 | `boundedAiRun`, `defaultAiStallTimeout` | The liveness bound. |
 | `AgentSdkTransportSelector`, `AgentSdkNotice`, `AgentSdkUnavailableKind` | The availability gate and what it says. |

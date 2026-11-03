@@ -41,49 +41,81 @@ import 'package:tom_llm/tom_llm.dart';
 
 /// One completion request at the transport layer.
 ///
-/// [context] is **already assembled and already password-free** — the
+/// [prompt] is **already assembled and already password-free** — the
 /// transport receives text, never sections, so it structurally cannot reach a
 /// password field. Nothing in this class can hold an application's model
 /// object; that is the point of it existing rather than passing an
 /// [LlmRequest] straight through.
 final class AgentSdkCompletionRequest {
-  /// The feature-supplied instruction.
+  /// The body as sent: the request's `WirePrompt.combined`, unchanged.
+  ///
+  /// One string because the Agent SDK has no system/user channel split for a
+  /// query, and `WirePrompt` says what a provider with no system channel
+  /// sends: the combined body, neither added to nor reordered. Both
+  /// transports put exactly this on the wire.
   final String prompt;
 
-  /// The assembled, password-free document context. Empty when the feature
-  /// sends none.
-  final String context;
-
-  /// An optional system prompt. Feature-supplied, never document-derived.
+  /// An optional system prompt. Configuration, never document-derived; null
+  /// keeps the far end's own system prompt.
   final String? systemPrompt;
 
-  /// An optional model override; null means the far end's default.
+  /// An optional model; null means the far end's default.
   final String? model;
 
   /// The tools the model may call during this request, or null
   /// for a plain completion that can act on nothing.
   ///
-  /// Narrow on purpose, like [context]: the transport is handed declarations
+  /// Narrow on purpose, like [prompt]: the transport is handed declarations
   /// and a function that answers a call **with text**, never the binding, the
   /// registry or a document. The tool runs in the app, behind its own gates
   /// and its password-excluding proxy; the transport only relays.
   final AgentSdkToolSet? tools;
 
+  /// The far end's conversation to continue (the SDK's `resume`), or null
+  /// for a fresh one.
+  final String? resume;
+
+  /// Claude Code's own agent loop, or null for none.
+  ///
+  /// Null — what an app's actions and its document agent use — turns the
+  /// SDK's own tools off and allows one turn, or [tools] and a bounded number
+  /// of turns. Non-null hands the run to Claude Code with its own tools and
+  /// MCP servers, under [AgentSdkAgentLoop.permissionMode] and
+  /// [AgentSdkAgentLoop.maxTurns]: a backend that is itself an agent.
+  final AgentSdkAgentLoop? agentLoop;
+
   const AgentSdkCompletionRequest({
     required this.prompt,
-    this.context = '',
     this.systemPrompt,
     this.model,
     this.tools,
+    this.resume,
+    this.agentLoop,
   });
+}
 
-  /// The single string actually put on the wire.
-  ///
-  /// Composition lives here, on the value object, so both transports send
-  /// byte-identical prompts for the same request — the two paths differ in how
-  /// they reach a server, never in what they say to it.
-  String get wirePrompt =>
-      context.isEmpty ? prompt : '$prompt\n\n---\n\n$context';
+/// Claude Code running its own agent loop for a request: its tools, its MCP
+/// servers and its turns, under a permission posture.
+final class AgentSdkAgentLoop {
+  /// The most turns Claude Code may take, or null for the SDK's default.
+  final int? maxTurns;
+
+  /// The SDK's permission mode, as its wire string (`default`,
+  /// `acceptEdits`, `bypassPermissions`, `plan`, `dontAsk`, `auto`).
+  final String permissionMode;
+
+  const AgentSdkAgentLoop({this.maxTurns, this.permissionMode = 'default'});
+
+  Map<String, Object?> toMap() => {
+    'maxTurns': maxTurns,
+    'permissionMode': permissionMode,
+  };
+
+  factory AgentSdkAgentLoop.fromMap(Map<String, Object?> map) =>
+      AgentSdkAgentLoop(
+        maxTurns: (map['maxTurns'] as num?)?.toInt(),
+        permissionMode: map['permissionMode'] as String? ?? 'default',
+      );
 }
 
 /// One tool as the model is told about it: the registry entry's name,
@@ -168,6 +200,20 @@ final class AgentSdkTrailed extends AgentSdkCompletionEvent {
 /// the evidence. [unmappedType] is set when the far end sent a message kind
 ///  has no row for — the provider logs it once per run by type, so a
 /// new SDK message is noticed rather than silently absorbed.
+/// The far end named the conversation the run belongs to — the id a later
+/// request passes as [AgentSdkCompletionRequest.resume] to continue it.
+///
+/// Not a trail event: it is the far end's handle, kept by whoever resumes,
+/// and it is liveness to the stall bound like everything else.
+final class AgentSdkConversation extends AgentSdkCompletionEvent {
+  final String id;
+
+  const AgentSdkConversation(this.id);
+
+  @override
+  String toString() => 'AgentSdkConversation($id)';
+}
+
 final class AgentSdkLiveness extends AgentSdkCompletionEvent {
   /// What the far end did — `stream_event`, `tool call`, …
   final String source;

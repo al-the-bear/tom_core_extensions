@@ -1,3 +1,59 @@
+## 2.0.0
+
+One Agent SDK provider. The package carried two over the `tom_llm` contract —
+the main barrel's `AgentSdkLlmProvider` (used by the brain) and
+`agent_sdk.dart`'s `AgentSdkSessionProvider` (used by Webwork). The second is
+the one that remains, and takes over what only the first could do.
+
+### Breaking
+
+- **`AgentSdkLlmProvider` is deleted**, with its session strategies
+  (`AgentSdkSessionStrategy`, `NoSessionStrategy`, `BrainSessionStrategy`,
+  `QuestSessionStrategy`), `AgentSdkSessionStore` and
+  `agentSdkLooksLikeSessionError`. No re-export. The `lib/src/llm/` unit is
+  gone; the main barrel re-exports `tom_llm` directly. `doc/llm.md` and
+  `doc/api/api_summary_llm.md` are removed with it.
+- **`AgentSdkCompletionRequest` carries one prompt.** `context` and
+  `wirePrompt` are removed: the provider sends the request's
+  `WirePrompt.combined` body unchanged (system channel first), as `WirePrompt`
+  requires of a backend with no system channel. It used to send the user
+  channel first and the context after a `---` rule.
+- **The request's model wins.** `AgentSdkSessionProvider.model` is the default
+  for a request that names none; it used to override the request.
+- `AgentSdkTransportSelector.candidates` is a getter.
+
+### Added
+
+- **Resuming the far end's conversation** (`resume.dart`):
+  `AgentSdkResumeStrategy` with `AgentSdkStoredResume` over an
+  `AgentSdkResumeStore` (keyed by `LlmOptions.sessionId`) and the read-only
+  `AgentSdkQuestResume`; `agentSdkLooksLikeResumeError`. The provider's
+  `resume` consults it per request, records the conversation a completed run
+  named, and retries once, fresh, a resumed conversation the far end does not
+  know — while no text has been delivered, counted in the report's `retries`.
+- **`AgentSdkCompletionRequest.resume`** and the completion event
+  **`AgentSdkConversation`**, which the CLI-server channel emits when the far
+  end names the run's conversation; `boundedAiRun(onConversation:)` and the
+  session manager's `onConversation` carry it to the provider.
+- **`AgentSdkAgentLoop`** (`AgentSdkSessionProvider.agentLoop`,
+  `AgentSdkCompletionRequest.agentLoop`): Claude Code's own loop — its tools
+  and MCP servers, `maxTurns`, `permissionMode`.
+- **`AgentSdkWhenBusy`** (`AgentSdkSessionProvider.whenBusy`) and
+  `AgentSdkSessionManager.run(queueWhenBusy:)`: a run in a busy session waits
+  for it instead of being refused.
+- **`AgentSdkSessionManager.idleClose`**: a session idle that long has its
+  host stopped, and starts again on its next run.
+- **`AgentSdkSessionProvider.connectOnDemand`**: a run with no active
+  transport retries the selector and, when nothing answers, ends as a failed
+  run with the selector's reason. **`AgentSdkTransportSelector.replaceCandidates`**
+  moves a provider to another endpoint.
+- **`AgentSdkRunAttribution`** (`AgentSdkSessionProvider.attribution`): a run
+  names the transport (default) or the provider's `id`. With `agentLoop` set,
+  Claude Code's own tool calls stay in the trails and out of the caller's run.
+- **`AgentSdkSessionProvider.id`** (default `anthropic`), and a completed
+  run's report attributed to the request's prompt: `anchorHash`,
+  `promptHash` (`promptSha256` of the combined body) and `templateSha`.
+
 ## 1.9.0
 
 ### Added

@@ -5,6 +5,8 @@
 /// reuse across the brain, the assistant, and any future agent runtime.
 library;
 
+export 'package:tom_llm/tom_llm.dart';
+
 export 'src/agent/agent.dart';
 export 'src/argument_guards.dart';
 export 'src/async_shutdown.dart';
@@ -21,7 +23,6 @@ export 'src/http_date.dart';
 export 'src/isolate_streaming/isolate_streaming.dart';
 export 'src/json_helpers.dart';
 export 'src/latency_summary.dart';
-export 'src/llm/llm.dart';
 export 'src/map_field_reader.dart';
 export 'src/mcp_auth/mcp_auth.dart';
 export 'src/path_scope.dart';

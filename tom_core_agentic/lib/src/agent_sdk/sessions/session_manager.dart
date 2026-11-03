@@ -53,6 +53,15 @@ final class AgentSdkSessionManager {
   /// How long a cancelled run may take to stop before its isolate is.
   final Duration cancelGrace;
 
+  /// How long a session may sit without a run before its host is stopped, or
+  /// null to keep it until [dispose].
+  ///
+  /// An app has two sessions and keeps them; a backend opens one per caller
+  /// session, and without this would hold an isolate — and, standalone, a
+  /// Node child — for every caller it ever served. A stopped session starts
+  /// again on its next run.
+  final Duration? idleClose;
+
   /// The zone the manager was built in, where its sessions run.
   final Zone _zone = Zone.current;
 
@@ -65,6 +74,7 @@ final class AgentSdkSessionManager {
     LlmTrails? trails,
     this.diagnostics = const TomNullDiagnostics(),
     this.cancelGrace = const Duration(seconds: 2),
+    this.idleClose,
   }) : trails = trails ?? LlmTrails();
 
   /// Whether [sessionId] has a run in progress.
@@ -73,8 +83,10 @@ final class AgentSdkSessionManager {
 
   /// Runs [request] in [sessionId] over [transport], under [stallGap].
   ///
-  /// Throws [LlmSessionBusyException] when the session already has a
-  /// run. The stream carries [prelude] and then what the session
+  /// A session holds one run at a time. When it already has one, the call
+  /// throws [LlmSessionBusyException] — or, with [queueWhenBusy], waits for
+  /// the session to be free and then runs (a run cancelled while it waits
+  /// never starts). The stream carries [prelude] and then what the session
   /// reports, ends with one [LlmRunEnded], and does not error.
   /// Cancelling it cancels the run. [onFailure] observes a transport failure
   /// (the provider closes the availability gate on `unreachable`); the
@@ -86,13 +98,29 @@ final class AgentSdkSessionManager {
     required List<LlmEvent> prelude,
     required Duration stallGap,
     void Function(LlmTransportException failure)? onFailure,
+    void Function(String conversationId)? onConversation,
+    bool queueWhenBusy = false,
   }) {
     if (_disposed) throw StateError('The AI sessions were closed.');
     final session = _sessions.putIfAbsent(
       sessionId,
       () => _Session(sessionId, this),
     );
-    if (session.run != null) throw LlmSessionBusyException(sessionId);
+    if (session.run != null) {
+      if (!queueWhenBusy) throw LlmSessionBusyException(sessionId);
+      return Stream.fromFuture(session.whenFree()).asyncExpand(
+        (_) => this.run(
+          sessionId: sessionId,
+          transport: transport,
+          request: request,
+          prelude: prelude,
+          stallGap: stallGap,
+          onFailure: onFailure,
+          onConversation: onConversation,
+          queueWhenBusy: true,
+        ),
+      );
+    }
     final run = _Run(
       id: 'r${++_nextRun}',
       request: request,
@@ -100,6 +128,7 @@ final class AgentSdkSessionManager {
       stallGap: stallGap,
       transportId: transport.id,
       onFailure: onFailure,
+      onConversation: onConversation,
     );
     session.run = run;
     run.controller.onListen = () => unawaited(session.start(run, transport));
@@ -146,6 +175,9 @@ class _Run {
   final String transportId;
   final void Function(LlmTransportException failure)? onFailure;
 
+  /// Told the far end's conversation id when the far end names it.
+  final void Function(String conversationId)? onConversation;
+
   /// Broadcast, as every controller here is.
   final StreamController<LlmEvent> controller =
       StreamController<LlmEvent>.broadcast();
@@ -166,6 +198,7 @@ class _Run {
     required this.stallGap,
     required this.transportId,
     required this.onFailure,
+    required this.onConversation,
   }) : account = LlmRunAccount(providerId: transportId) {
     prelude.forEach(account.observe);
   }
@@ -180,6 +213,37 @@ class _Session {
 
   /// The run in flight, or null.
   _Run? run;
+
+  final List<Completer<void>> _waiting = [];
+
+  /// Completes when the session has no run — at once when it has none now.
+  Future<void> whenFree() {
+    if (run == null) return Future.value();
+    final waiter = Completer<void>();
+    _waiting.add(waiter);
+    return waiter.future;
+  }
+
+  /// [run] is over: the session is free, and every caller waiting for it is
+  /// told. They race for it and the losers wait again — waking only one would
+  /// strand the rest behind a waiter that was cancelled while it waited.
+  void _free(_Run run) {
+    if (!identical(this.run, run)) return;
+    this.run = null;
+    final idle = manager.idleClose;
+    if (idle != null && _toWorker != null) {
+      _idleTimer?.cancel();
+      _idleTimer = manager._zone.createTimer(idle, () {
+        _idleTimer = null;
+        if (this.run == null) unawaited(close(message: 'idle'));
+      });
+    }
+    final waiting = [..._waiting];
+    _waiting.clear();
+    for (final waiter in waiting) {
+      waiter.complete();
+    }
+  }
 
   /// The transport the host was started over; a different one restarts it.
   AgentSdkServerTransport? _transport;
@@ -197,11 +261,17 @@ class _Session {
   AiSessionWorker? _local;
 
   Timer? _cancelTimer;
+
+  /// Stops the host once the session has been idle for the manager's
+  /// `idleClose`.
+  Timer? _idleTimer;
   Future<void>? _starting;
 
   LlmTrails get _trails => manager.trails;
 
   Future<void> start(_Run run, AgentSdkServerTransport transport) async {
+    _idleTimer?.cancel();
+    _idleTimer = null;
     run.clock.start();
     manager._log('ai.run.started', id, run, {
       'task': _task(run),
@@ -223,9 +293,10 @@ class _Session {
       'runId': run.id,
       'request': {
         'prompt': run.request.prompt,
-        'context': run.request.context,
         'systemPrompt': run.request.systemPrompt,
         'model': run.request.model,
+        'resume': run.request.resume,
+        'agentLoop': run.request.agentLoop?.toMap(),
         'toolServer': run.request.tools?.serverName,
         'tools': run.request.tools == null
             ? null
@@ -322,6 +393,9 @@ class _Session {
           run,
           LlmEvent.fromMap((message['event']! as Map).cast<String, Object?>()),
         );
+      case 'conversation':
+        if (run == null || run.id != message['runId']) return;
+        run.onConversation?.call(message['id']! as String);
       case 'toolCall':
         if (run == null || run.id != message['runId']) return;
         unawaited(_answerTool(run, message));
@@ -379,7 +453,7 @@ class _Session {
       // Free from the moment the caller's stream ends, not from the worker's
       // `done` a message later: a run started on the next line must not find
       // the session busy with a run its caller has seen end.
-      if (identical(this.run, run)) this.run = null;
+      _free(run);
       manager._log('ai.run.ended', id, run, {
         'outcome': event.outcome.name,
         'toolCalls': event.toolCalls,
@@ -402,7 +476,7 @@ class _Session {
         ),
       );
     }
-    if (identical(this.run, run)) this.run = null;
+    _free(run);
   }
 
   /// Ends [run] as failed with [message] and frees the session.
@@ -417,7 +491,7 @@ class _Session {
         ),
       );
     }
-    if (identical(this.run, run)) this.run = null;
+    _free(run);
   }
 
   /// The caller stopped listening: the run is cancelled.
@@ -438,7 +512,7 @@ class _Session {
     final send = _toWorker;
     if (send == null) {
       // Cancelled before the host started: nothing is running yet.
-      if (identical(this.run, run)) this.run = null;
+      _free(run);
       return;
     }
     send({'op': 'cancel', 'runId': run.id});
@@ -479,6 +553,8 @@ class _Session {
   }) async {
     _cancelTimer?.cancel();
     _cancelTimer = null;
+    _idleTimer?.cancel();
+    _idleTimer = null;
     final send = _toWorker;
     if (send == null) return;
     final isolate = _isolate;
@@ -499,7 +575,7 @@ class _Session {
     if (local != null) await local.dispose();
     if (run != null) {
       if (run.cancelled) {
-        if (identical(this.run, run)) this.run = null;
+        _free(run);
       } else {
         _fail(run, 'The $id AI session was closed.');
       }
