@@ -192,14 +192,6 @@ final class AgentSdkTrailed extends AgentSdkCompletionEvent {
   String toString() => 'AgentSdkTrailed(${event.kind})';
 }
 
-/// The far end showed it is alive and said nothing the trail records: a
-/// partial message's bookkeeping (`message_start`, a block opening or
-/// closing), a progress event, a tool call being run.
-///
-/// Counted by the provider's gap bound and otherwise dropped. [source] names
-/// the evidence. [unmappedType] is set when the far end sent a message kind
-///  has no row for — the provider logs it once per run by type, so a
-/// new SDK message is noticed rather than silently absorbed.
 /// The far end named the conversation the run belongs to — the id a later
 /// request passes as [AgentSdkCompletionRequest.resume] to continue it.
 ///
@@ -214,6 +206,14 @@ final class AgentSdkConversation extends AgentSdkCompletionEvent {
   String toString() => 'AgentSdkConversation($id)';
 }
 
+/// The far end showed it is alive and said nothing the trail records: a
+/// partial message's bookkeeping (`message_start`, a block opening or
+/// closing), a progress event, a tool call being run.
+///
+/// Counted by the provider's gap bound and otherwise dropped. [source] names
+/// the evidence. [unmappedType] is set when the far end sent a message kind
+///  has no row for — the provider logs it once per run by type, so a
+/// new SDK message is noticed rather than silently absorbed.
 final class AgentSdkLiveness extends AgentSdkCompletionEvent {
   /// What the far end did — `stream_event`, `tool call`, …
   final String source;

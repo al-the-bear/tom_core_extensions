@@ -31,10 +31,11 @@ transport reached on demand.
 | ---------- | ---- | ----------- | --- |
 | `dart:async` | dart | 9 of 18 files | Streams, completers and timers: a run's events, the stall bound's timer, the session isolates' ports |
 | `dart:convert` | dart | `resume.dart`, `server_payload.dart`, `testing/echo_ai_server.dart`, `testing/fake_ai_server.dart`, `transport/standalone_transport.dart` | JSON: the resume store and a quest's session file, the CLI-server wire, the server's `package.json` and `package-lock.json`, the stand-in servers' replies |
-| `dart:io` | dart | `resume.dart`, `server_payload.dart`, `testing/echo_ai_server.dart`, `testing/fake_ai_server.dart`, `testing/fixture_scripts.dart`, `testing/node_runtime.dart`, `transport/standalone_transport.dart` | The resume store and a quest's session file, starting the Node server and `npm ci`, reading the installed tree, the stand-in servers' sockets |
+| `dart:io` | dart | 7 of 18 files | The resume store and a quest's session file, starting the Node server and `npm ci`, reading the installed tree, the stand-in servers' sockets |
 | `dart:isolate` | dart | `sessions/session_manager.dart`, `sessions/session_worker.dart`, `testing/fixture_scripts.dart`, `transport/standalone_transport.dart` | One isolate per session, and resolving `package:` URIs to the server script and the fixtures |
 | `dart:typed_data` | dart | `testing/fake_ai_server.dart` | The bytes the fake CLI server frames |
 | `meta` | package | `live_model_probe.dart`, `server_payload.dart`, `sessions/session_manager.dart`, `transport/cli_server_channel.dart`, `transport/standalone_transport.dart` | `@visibleForTesting` |
 | `tom_basics` | package | `sessions/session_manager.dart` | The diagnostics port the session manager logs run starts and ends through |
 | `tom_llm` | package | 13 of 18 files | The provider contract `AgentSdkSessionProvider` implements, the run events every transport streams, the trails and the Node search |
 | `tom_vscode_scripting_api` | package | `transport/cli_server_channel.dart`, `transport/hosted_transport.dart`, `transport/sdk_trail_translator.dart`, `transport/standalone_transport.dart` | The CLI-server wire, its 19900–19909 port scan, and the mirror of the Agent SDK's messages |
+| `prompt_sha256.dart` | module | `session_provider.dart` | `promptSha256`, the body hash a run's report carries |
