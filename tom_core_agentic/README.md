@@ -1,6 +1,6 @@
 # tom_core_agentic
 
-Published on pub.dev as [`tom_core_agentic` 1.9.0](https://pub.dev/packages/tom_core_agentic).
+Published on pub.dev as [`tom_core_agentic` 2.0.0](https://pub.dev/packages/tom_core_agentic).
 
 Generic, domain-free building blocks for agentic systems in the TOM
 framework, safe to reuse across the brain, the assistant, Webwork and any
