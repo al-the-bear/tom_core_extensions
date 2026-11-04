@@ -1,0 +1,29 @@
+name: tom_core_message_bus_nats
+description: >-
+  The NATS JetStream adapter of the Tom message bus: TomMessageBus over a NATS
+  server with JetStream, a stream per topic and a durable pull consumer per
+  consumer group. Passes the bus's conformance suite.
+version: 0.1.0
+
+repository: https://github.com/al-the-bear/tom_core_extensions
+homepage: https://github.com/al-the-bear/tom_core_extensions/tree/main/tom_core_message_bus_nats
+
+environment:
+  sdk: ^3.10.0
+
+dependencies:
+  # The NATS client with JetStream: streams, durable pull consumers, ack/nak/term.
+  dart_nats: ^1.7.0
+  # The contract this package implements, the trace helpers and the codec.
+  tom_core_message_bus:
+    path: ../../core/tom_core_message_bus
+  # The exception base and the logging the adapter writes to.
+  tom_core_kernel:
+    path: ../../core/tom_core_kernel
+
+dev_dependencies:
+  lints: ^6.0.0
+  test: ^1.28.0
+  # The bus relay, for the relay-through-NATS integration test.
+  tom_core_server:
+    path: ../../core/tom_core_server
