@@ -20,8 +20,10 @@ A service that publishes and consumes through `TomMessageBus` runs on Kafka by
 constructing this bus instead of the in-memory one; nothing above the contract
 changes. The other adapters are
 [`tom_core_message_bus_nats`](../tom_core_message_bus_nats/README.md) (NATS
-JetStream) and [`tom_core_message_bus_rabbitmq`](../tom_core_message_bus_rabbitmq/README.md)
-(RabbitMQ).
+JetStream), [`tom_core_message_bus_rabbitmq`](../tom_core_message_bus_rabbitmq/README.md)
+(RabbitMQ), [`tom_core_message_bus_aws`](../tom_core_message_bus_aws/README.md)
+(Amazon SNS and SQS) and [`tom_core_message_bus_gcp`](../tom_core_message_bus_gcp/README.md)
+(Google Cloud Pub/Sub).
 
 The bus speaks HTTP to a **Confluent REST Proxy** in front of the cluster:
 API v2 for records and consumer instances, v3 for naming the cluster and

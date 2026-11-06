@@ -21,10 +21,6 @@ import 'package:crypto/crypto.dart';
 import 'package:http/http.dart' as http;
 import 'package:tom_core_server/tom_core_server.dart';
 
-/// Supplies the credentials a request is signed with — called for every
-/// request, so a source can hand out refreshed temporary credentials.
-typedef TomAwsCredentialsSource = Future<TomAwsCredentials> Function();
-
 /// A [TomSecretsProvider] over AWS Secrets Manager.
 class TomAwsSecretsProvider implements TomSecretsProvider {
   /// The configuration key the provider's settings are read from.

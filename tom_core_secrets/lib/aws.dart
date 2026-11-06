@@ -7,3 +7,4 @@
 library;
 
 export 'src/aws/aws_secrets_provider.dart';
+export 'src/aws/aws_kms_key.dart';

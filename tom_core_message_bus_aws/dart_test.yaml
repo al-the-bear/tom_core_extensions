@@ -1,0 +1,5 @@
+tags:
+  aws:
+    # Needs SNS and SQS. tool/run_aws_tests.sh starts LocalStack in Docker and
+    # runs these tests; without it they skip themselves.
+    timeout: 4x

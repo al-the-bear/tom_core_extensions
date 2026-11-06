@@ -3,8 +3,9 @@
 `TomAzureKeyVaultSecretsProvider` answers every configuration reference that
 names the `azure` provider. This page covers the Azure side: how a reference
 names a secret and a version, how the provider is configured, where its token
-comes from and how long it is kept, how it reacts to rotation and refusal, and
-how its emulator suite runs. How references work in general — where they may
+comes from and how long it is kept, how it reacts to rotation and refusal, how
+a Key Vault key serves as a key-encryption key for field encryption, and how
+its emulator suite runs. How references work in general — where they may
 appear, their precedence, the boot order and the refresh cycle — is in
 [`tom_core_server/doc/configuration.md`](../../../core/tom_core_server/doc/configuration.md#secret-references).
 
@@ -20,6 +21,7 @@ appear, their precedence, the boot order and the refresh cycle — is in
   - [A static token](#a-static-token)
   - [Token caching and refusal](#token-caching-and-refusal)
 - [Rotation](#rotation)
+- [Key-encryption keys for field encryption](#key-encryption-keys-for-field-encryption)
 - [Error keys](#error-keys)
 - [Not Yet Implemented](#not-yet-implemented)
 - [Verification](#verification)
@@ -219,6 +221,71 @@ move. A refresh that cannot read a secret keeps the last value and lists the
 reference in `TomSecretsRefresh.failed`; only the first `TomSecrets.load` fails
 the boot.
 
+## Key-encryption keys for field encryption
+
+`TomAzureKeyVaultKeyEncryptionKey` (`lib/src/azure/azure_key_vault_key.dart`) is
+a `TomKeyEncryptionKey` for `tom_core_server`'s field-level encryption whose key
+never leaves Key Vault: a data key is wrapped with the vault's `wrapkey` and
+unwrapped with `unwrapkey`, under the vault key `keyName`. How field encryption
+uses its key-encryption keys is in
+[`tom_core_server/doc/object_persistence.md`](../../../core/tom_core_server/doc/object_persistence.md#keys-held-by-a-key-management-service).
+
+Requests go through a `TomAzureKeyVaultSecretsProvider`'s `call`, so they reach
+its vault with its Entra ID credential — a service principal, the host's
+managed identity or a static token. `TomAzureKeyVaultKeyEncryptionKey.register()`
+registers the kind `azure-keyvault` (`TomAzureKeyVaultKeyEncryptionKey.kind`)
+with `TomFieldEncryption.registerKeyKind`; the entries of that kind share one
+provider, built from `secrets.azure` / `AZURE_*` as
+[Configuration](#configuration) describes, when the first is built. It runs
+before `TomServer.start` applies `fieldEncryption` and takes the same `config`
+and `environment` as `fromConfiguration`:
+
+```dart
+TomAzureKeyVaultKeyEncryptionKey.register(environment: Platform.environment);
+```
+
+```yaml
+fieldEncryption:
+  datasource: main
+  keys:
+    - id: keyvault-2026
+      kind: azure-keyvault
+      keyName: field-keys       # required: the vault key
+      keyVersion: 0123abcd...   # default: the key's current version
+      algorithm: RSA-OAEP-256   # or RSA-OAEP, or A256KW on a Managed HSM
+```
+
+| Setting | Default | Meaning |
+| ------- | ------- | ------- |
+| `keyName` | required | The vault key that wraps. Without it the entry is refused, `secrets.kek.config.invalid`. |
+| `keyVersion` | the key's current version, read from the vault once | The key version that wraps. |
+| `algorithm` | `RSA-OAEP-256` | The wrapping algorithm, one of `TomAzureKeyVaultKeyEncryptionKey.algorithms`: `RSA-OAEP-256` or `RSA-OAEP` for an RSA key, `A256KW` for an AES key on a Managed HSM. Another is refused, `secrets.kek.config.invalid`. |
+
+**The data key id is bound into the wrapped bytes.** None of the three
+algorithms takes associated data, so what is wrapped is a frame
+(`TomAzureKeyVaultKeyEncryptionKey.framed`): the id's length in one byte, the
+id's UTF-8 bytes and the data key, zero-padded to a multiple of eight bytes for
+AES key wrap. `unwrap` refuses a key whose frame records another id
+(`unframed` answers `null` for it), so a wrapped key cannot be passed off as
+another. An id longer than 255 bytes cannot be framed.
+
+**The wrapped key records the version that wrapped it**: the version's length in
+one byte, the version, then the vault's wrapped bytes. `unwrap` asks that
+version, so a key rotated in Key Vault still unwraps the data keys its earlier
+versions wrapped, while new data keys are wrapped under the version
+`keyVersion` names, or the current version as read when the key first wrapped.
+Moving to another vault key is a key-encryption-key rotation in
+`fieldEncryption.keys`.
+
+The identity needs the key operations `wrapKey` and `unwrapKey` (the
+*Key Vault Crypto Service Encryption User* role, or an access policy with those
+permissions), and reading the key (`get`) when `keyVersion` is not set.
+
+| Key | When |
+| --- | ---- |
+| `secrets.kek.config.invalid` | The entry has no `keyName`, or names an algorithm not in `algorithms`. |
+| `secrets.kek.failed` | Key Vault could not be reached or refused the call — a key it does not hold, an operation the identity may not perform; a wrapped key that names no key version; a frame that records another data key id; or a data key id too long to frame. |
+
 ## Error keys
 
 Every failure is a `TomSecretsException`; its message names the secret, never
@@ -243,16 +310,19 @@ The framework adds its own around them — `secrets.field.required`,
   certificate, workload identity federation (AKS, GitHub Actions) and the Azure
   CLI's token cache are not built in; each is a `TomAzureCredential`
   implementation.
-- **Secrets only.** Key Vault keys and certificates are not read; a
-  certificate's private key is reachable as the secret of the same name.
+- **No certificates.** Key Vault certificates are not read; a certificate's
+  private key is reachable as the secret of the same name. Key Vault keys serve
+  only as [key-encryption keys](#key-encryption-keys-for-field-encryption).
 
 ## Verification
 
 | Suite | Settles |
 | ----- | ------- |
-| `test/azure_secrets_provider_test.dart` | `fromConfiguration` with a service principal from the configuration, from the Azure variables, and a managed identity on request, and its refusals; a fetch reading the value and the version from the id with a bearer; `404` as `not_found` and other failures as `failed`; a `401` dropping the token and retrying once; a token reused until shortly before it expires; a managed identity asking the instance metadata endpoint or App Service's; a refused or unreachable token endpoint as `token_failed`. Runs against `MockClient`. |
-| `test/example_test.dart` | Runs `example/azure_secrets_example.dart` and requires exit 0. |
-| `test/azure_emulator_test.dart` | Tagged `emulator`. Against Lowkey Vault: a plain secret read with a managed-identity token, fields of a JSON secret resolved through `TomSecrets`, a new version reaching a watcher while a pinned version does not move, `not_found` for an absent secret, and a missing identity endpoint refused as `token_failed`. Skips itself when the emulator does not answer. |
+| `test/azure/azure_secrets_provider_test.dart` | `fromConfiguration` with a service principal from the configuration, from the Azure variables, and a managed identity on request, and its refusals; a fetch reading the value and the version from the id with a bearer; `404` as `not_found` and other failures as `failed`; a `401` dropping the token and retrying once; a token reused until shortly before it expires; a managed identity asking the instance metadata endpoint or App Service's; a refused or unreachable token endpoint as `token_failed`. Runs against `MockClient`. |
+| `test/azure/example_test.dart` | Runs `example/azure_secrets_example.dart` and requires exit 0. |
+| `test/azure/azure_emulator_test.dart` | Tagged `emulator`. Against Lowkey Vault: a plain secret read with a managed-identity token, fields of a JSON secret resolved through `TomSecrets`, a new version reaching a watcher while a pinned version does not move, `not_found` for an absent secret, and a missing identity endpoint refused as `token_failed`. Skips itself when the emulator does not answer. |
+| `test/key_encryption_key_settings_test.dart` | KS-1 to KS-6, for all three key-encryption keys: an `azure-keyvault` entry's key, version and algorithm (KS-3); an entry without its key, or with an unknown algorithm, refused with `secrets.kek.config.invalid` (KS-4); each library registering its kind with field encryption (KS-5); the frame binding the data key id, padded to eight bytes (KS-6). No emulator. |
+| `test/azure/azure_kek_emulator_test.dart` | Tagged `emulator`. Against Lowkey Vault, through the shared contract `test/support/key_encryption_key_contract.dart`: a data key wraps and unwraps under its own id (AKV-1); a wrapped key does not unwrap under another id, `secrets.kek.failed` (AKV-2); a keyring over the vault key encrypts, rotates its data key and rewraps the data keys of an application-held key under it, and a fresh keyring holding only the vault key reads everything (AKV-3); a key the vault does not hold refused with `secrets.kek.failed` (AKV-4). The test creates the RSA key `field-keys`; Lowkey Vault implements wrapping through its encrypt operation, so the test key also carries `encrypt` and `decrypt` — a real Key Vault needs only `wrapKey` and `unwrapKey`. Skips itself when the emulator does not answer. |
 
 ```bash
 dart test                         # unit suite + example; emulator tests skip
@@ -263,7 +333,7 @@ dart test                         # unit suite + example; emulator tests skip
 vault on `https://localhost:18443/` (`AZURE_TEST_PORT`) and its managed-identity
 token endpoint on `http://localhost:18080/` (`AZURE_TEST_TOKEN_PORT`), waits
 until the vault answers an unauthenticated request with `401`, runs
-`dart test --tags emulator` with `AZURE_TEST_VAULT` and `AZURE_TEST_IDENTITY`
+`dart test --tags emulator test/azure` with `AZURE_TEST_VAULT` and `AZURE_TEST_IDENTITY`
 pointing at it, and removes the container. Lowkey Vault serves its vault under
 the host and port a request names, so the container listens on the same port
 the host maps (`LOWKEY_ARGS=--server.port=<port>`); a mapped port that differs

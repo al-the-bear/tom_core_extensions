@@ -195,7 +195,7 @@ factory TomOpenApiDartType.fromDeclaration(VariableMirror declaration)
 | ------- | ----------- |
 | `parse` | Parses a type as Dart prints it — `List<Workspace>`, `Map<String, Object?>`, `Future<void>` — splitting arguments by bracket depth. Used for the registry's `responseType` and for reflected `Type`s, which keep every type argument. |
 | `fromMirror` | Reads a type mirror: nullability and the first level of type arguments, which is all the reflection data carries. |
-| `fromDeclaration` | Reads a field or parameter. The shape comes from the declaration's reflected `Type`; only top-level nullability, which a `Type` erases, comes from the mirror. The mirror's own type arguments are not used, because the generated reflection data can attach the wrong class to an argument mirror. |
+| `fromDeclaration` | Reads a field or parameter. The shape comes from the declaration's reflected `Type`; only top-level nullability, which a `Type` erases, comes from the mirror. The mirror's own type arguments are not used: each is its class's mirror, looked up by `Type`, so it carries no nullability. |
 
 #### Properties
 

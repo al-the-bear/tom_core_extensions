@@ -1,12 +1,13 @@
 # Tom Core Secrets Vault API Reference: tom_core_secrets/vault.dart
 
 HashiCorp Vault as a secrets provider for Tom servers: the provider, the
-interface it authenticates through, and the two built-in auth methods. One
-library, `package:tom_core_secrets/vault.dart`.
+interface it authenticates through, the two built-in auth methods, and a
+Transit key as a key-encryption key for field encryption. One library,
+`package:tom_core_secrets/vault.dart`.
 
-For the reference syntax, configuration, authentication behaviour and the
-error keys, see [vault_secrets.md](../vault_secrets.md); for the framework side
-(`TomSecrets`, `TomSecretsProvider`, `TomSecretPayload`,
+For the reference syntax, configuration, authentication behaviour, the Transit
+key's settings and the error keys, see [vault_secrets.md](../vault_secrets.md);
+for the framework side (`TomSecrets`, `TomSecretsProvider`, `TomSecretPayload`,
 `TomSecretsException`), `tom_core_server`'s
 [configuration API summary](../../../../core/tom_core_server/doc/api/api_summary_configuration.md).
 
@@ -19,18 +20,22 @@ error keys, see [vault_secrets.md](../vault_secrets.md); for the framework side
   - [TomVaultTokenAuth](#tomvaulttokenauth)
   - [TomVaultAppRoleAuth](#tomvaultapproleauth)
   - [TomVaultSecretsProvider](#tomvaultsecretsprovider)
+  - [TomVaultTransitKeyEncryptionKey](#tomvaulttransitkeyencryptionkey)
 
 ## Overview
 
-Source: `lib/src/vault_secrets_provider.dart`.
+Source: `lib/src/vault/`.
 
 | File | Declares |
 | ---- | -------- |
-| `vault_secrets_provider.dart` | `TomVaultAuth`, `TomVaultTokenAuth`, `TomVaultAppRoleAuth`, `TomVaultSecretsProvider` |
+| `vault/vault_secrets_provider.dart` | `TomVaultAuth`, `TomVaultTokenAuth`, `TomVaultAppRoleAuth`, `TomVaultSecretsProvider` |
+| `vault/vault_transit_key.dart` | `TomVaultTransitKeyEncryptionKey` |
 
 The provider is registered with `TomSecrets.register` and answers every
 reference `secret:vault:<path>[#<field>]`, where `<path>` is the Vault API path
-after `/v1/`.
+after `/v1/`. `TomVaultTransitKeyEncryptionKey` is registered with
+`TomFieldEncryption` as the key kind `vault-transit` and reaches Vault through
+the provider's `call`.
 
 ## Class Hierarchy
 
@@ -41,6 +46,9 @@ TomVaultAuth  (abstract)
 
 TomSecretsProvider  (tom_core_server)
     └── TomVaultSecretsProvider  (implements)
+
+TomKeyEncryptionKey  (tom_core_server)
+    └── TomVaultTransitKeyEncryptionKey  (implements)
 ```
 
 ## Classes
@@ -183,3 +191,57 @@ factory TomVaultSecretsProvider.fromConfiguration({
 | `fetch` | `Future<TomSecretPayload> fetch(String path)` | Reads `GET /v1/<path>`. A KV version 2 answer yields its inner `data` map with `metadata.version` as the payload version; any other answer its `data` map. Throws `secrets.fetch.not_found` on `404`, `secrets.fetch.failed` on any other failure or an answer without `data`. |
 | `call` | `Future<Map<String, Object?>> call(String method, String path, {Map<String, Object?>? body, bool authenticated = true})` | Calls Vault at `/v1/<path>` and answers the decoded body (`{}` for an empty one). Sends the namespace header when set and, when `authenticated`, the token from `auth`; retries once after a `403` on an authenticated call with a fresh token. Public so an auth method logs in through the same client. |
 | `close` | `Future<void> close()` | Closes the HTTP client. |
+
+### TomVaultTransitKeyEncryptionKey
+
+A key-encryption key for field encryption whose key never leaves Vault: a data
+key is wrapped with the Transit engine's `encrypt` and unwrapped with its
+`decrypt`, under the Transit key `keyName` of the engine mounted at `mount`,
+with the associated data `tom-data-key:<data key id>` — so the Transit key must
+be of an AEAD type (`aes256-gcm96`, the default, is). Requests go through
+`provider` and so use its address, namespace and authentication.
+
+- **Implements:** `TomKeyEncryptionKey` (from `tom_core_server`)
+
+#### Constructors
+
+```dart
+TomVaultTransitKeyEncryptionKey({
+  required this.id,
+  required this.provider,
+  required this.keyName,
+  this.mount = 'transit',
+})
+```
+
+#### Static Constants
+
+| Constant | Type | Value | Description |
+| -------- | ---- | ----- | ----------- |
+| `kind` | `String` | `'vault-transit'` | The kind of a `fieldEncryption.keys` entry this key is built for. |
+
+#### Static Methods
+
+| Method | Signature | Description |
+| ------ | --------- | ----------- |
+| `register` | `static void register({TomServerConfigResourceProvider? config, Map<String, String>? environment})` | Registers the kind `vault-transit` with `TomFieldEncryption.registerKeyKind`. The entries of that kind share one `TomVaultSecretsProvider.fromConfiguration(config:, environment:)`, built when the first entry is. |
+| `fromSettings` | `static TomVaultTransitKeyEncryptionKey fromSettings(String id, Map<String, Object?> settings, {required TomVaultSecretsProvider provider})` | The key `id` an entry's `settings` describe, through `provider`: `keyName` (required), `mount` (default `transit`). Throws `secrets.kek.config.invalid` without a `keyName`. |
+
+#### Properties
+
+| Property | Type | Description |
+| -------- | ---- | ----------- |
+| `id` | `String` | The key's id, recorded with every data key it wraps. |
+| `provider` | `TomVaultSecretsProvider` | The Vault secrets provider requests go through. |
+| `keyName` | `String` | The Transit key that wraps. |
+| `mount` | `String` | Where the Transit engine is mounted. |
+
+#### Methods
+
+| Method | Signature | Description |
+| ------ | --------- | ----------- |
+| `wrap` | `Future<List<int>> wrap(List<int> dataKey, {required String keyId})` | `POST <mount>/encrypt/<keyName>` with `dataKey` and the associated data of `keyId`; answers the UTF-8 bytes of Vault's ciphertext text, `vault:v1:...`. |
+| `unwrap` | `Future<List<int>> unwrap(List<int> wrapped, {required String keyId})` | `POST <mount>/decrypt/<keyName>` with the ciphertext text and the associated data of `keyId`; answers the plaintext. |
+
+Both throw `secrets.kek.failed` when Vault cannot be reached or refuses — among
+others a wrapped key that does not decrypt under the asked id.

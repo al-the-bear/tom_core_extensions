@@ -1,5 +1,56 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- **Key-encryption keys for field encryption**, one per library, each a
+  `tom_core_server` `TomKeyEncryptionKey` whose key never leaves its service,
+  registered as a `fieldEncryption.keys` kind by its `register()`
+  (`TomFieldEncryption.registerKeyKind`) and reaching the service with the
+  settings of the library's secrets provider:
+  - `TomAwsKmsKeyEncryptionKey` (`aws.dart`, kind `aws-kms`): KMS `Encrypt` /
+    `Decrypt` (`TrentService`, JSON 1.1) signed with `TomAwsV4Signer`, the data
+    key id bound as the encryption context `{"tom-data-key": <id>}`. Settings
+    `kmsKeyId` (required), `region`, `endpoint` (or `AWS_ENDPOINT_URL_KMS`);
+    credentials and the default region from `secrets.aws` / `AWS_*`.
+    `fromSettings`, `call` (the signed KMS client), `close`.
+  - `TomVaultTransitKeyEncryptionKey` (`vault.dart`, kind `vault-transit`):
+    Transit `encrypt` / `decrypt` through `TomVaultSecretsProvider.call`, the
+    data key id bound as the associated data `tom-data-key:<id>` (an AEAD
+    Transit key; `aes256-gcm96` is the default); the wrapped key is Vault's
+    `vault:v1:...` ciphertext text. Settings `keyName` (required), `mount`
+    (default `transit`). `fromSettings`.
+  - `TomAzureKeyVaultKeyEncryptionKey` (`azure.dart`, kind `azure-keyvault`):
+    `wrapkey` / `unwrapkey` through `TomAzureKeyVaultSecretsProvider.call` with
+    `RSA-OAEP-256` (default), `RSA-OAEP` or `A256KW` (Managed HSM). The data key
+    id is framed into the wrapped bytes (`framed`, `unframed`) and `unwrap`
+    refuses another id; the stored wrapped key records the key version that
+    wrapped it, so a key rotated in Key Vault still unwraps older data keys.
+    Settings `keyName` (required), `keyVersion` (default the current version,
+    read once), `algorithm`. `fromSettings`, `algorithms`, `dataKeyLength`.
+
+  Error keys `secrets.kek.config.invalid` (an entry without its key name or KMS
+  key, or an unknown algorithm) and `secrets.kek.failed` (the service refused
+  or could not be reached, or a wrapped key does not unwrap under the asked
+  id). `tool/run_aws_emulator_tests.sh` enables KMS beside Secrets Manager.
+  Documented in each provider's guide (§ Key-encryption keys for field
+  encryption) and the README. Tests: `test/key_encryption_key_settings_test.dart`
+  (KS-1 to KS-6, no emulator) and the shared contract
+  `test/support/key_encryption_key_contract.dart`, run as KMS-1 to KMS-4
+  (`test/aws/aws_kek_emulator_test.dart`, LocalStack), VT-1 to VT-3
+  (`test/vault/vault_kek_emulator_test.dart`, Vault dev server) and AKV-1 to
+  AKV-4 (`test/azure/azure_kek_emulator_test.dart`, Lowkey Vault).
+
+### Changed
+
+- **`TomAwsCredentialsSource` comes from `tom_core_server`.** The typedef is
+  defined in `tom_core_server` beside `TomAwsV4Signer` and `TomAwsCredentials`,
+  where the AWS message bus (`tom_core_message_bus_aws`) takes it too, and is no
+  longer declared by `aws.dart`. Its shape is unchanged,
+  `Future<TomAwsCredentials> Function()`; code naming the type imports
+  `package:tom_core_server/tom_core_server.dart`.
+
 ## 0.1.0
 
 One package, `tom_core_secrets`, in `tom_core_extensions`: the three

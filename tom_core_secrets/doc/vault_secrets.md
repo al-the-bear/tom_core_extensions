@@ -3,7 +3,8 @@
 `TomVaultSecretsProvider` answers every configuration reference that names the
 `vault` provider. This page covers the Vault side: how a reference names a
 Vault path, how the provider is configured and authenticates, how it reacts to
-rotation and refusal, and how its emulator suite runs. How references work in
+rotation and refusal, how a Transit key serves as a key-encryption key for
+field encryption, and how its emulator suite runs. How references work in
 general — where they may appear, their precedence, the boot order and the
 refresh cycle — is in
 [`tom_core_server/doc/configuration.md`](../../../core/tom_core_server/doc/configuration.md#secret-references).
@@ -20,6 +21,7 @@ refresh cycle — is in
   - [Another method](#another-method)
 - [Namespaces](#namespaces)
 - [Rotation](#rotation)
+- [Key-encryption keys for field encryption](#key-encryption-keys-for-field-encryption)
 - [Error keys](#error-keys)
 - [Not Yet Implemented](#not-yet-implemented)
 - [Verification](#verification)
@@ -205,6 +207,63 @@ with a new version is therefore seen at the next refresh. A refresh that cannot
 read a path keeps the last value and lists the reference in
 `TomSecretsRefresh.failed`; only the first `TomSecrets.load` fails the boot.
 
+## Key-encryption keys for field encryption
+
+`TomVaultTransitKeyEncryptionKey` (`lib/src/vault/vault_transit_key.dart`) is a
+`TomKeyEncryptionKey` for `tom_core_server`'s field-level encryption whose key
+never leaves Vault: a data key is wrapped with the Transit secrets engine's
+`encrypt` and unwrapped with its `decrypt`
+(`POST /v1/<mount>/encrypt/<keyName>`, `.../decrypt/<keyName>`). Every call
+carries the associated data `tom-data-key:<data key id>`, so Vault refuses to
+decrypt a wrapped key under any other id; the Transit key must therefore be of
+an AEAD type — `aes256-gcm96`, Transit's default, is. What is stored as the
+wrapped key is Vault's ciphertext text, `vault:v1:...`. How field encryption
+uses its key-encryption keys is in
+[`tom_core_server/doc/object_persistence.md`](../../../core/tom_core_server/doc/object_persistence.md#keys-held-by-a-key-management-service).
+
+Requests go through a `TomVaultSecretsProvider`'s `call`, so they use its
+address, namespace and authentication — a token, or an AppRole login renewed as
+the provider renews it. `TomVaultTransitKeyEncryptionKey.register()` registers
+the kind `vault-transit` (`TomVaultTransitKeyEncryptionKey.kind`) with
+`TomFieldEncryption.registerKeyKind`; the entries of that kind share one
+provider, built from `secrets.vault` / `VAULT_*` as
+[Configuration](#configuration) describes, when the first is built. It runs
+before `TomServer.start` applies `fieldEncryption` and takes the same `config`
+and `environment` as `fromConfiguration`:
+
+```dart
+TomVaultTransitKeyEncryptionKey.register(environment: Platform.environment);
+```
+
+```yaml
+fieldEncryption:
+  datasource: main
+  keys:
+    - id: transit-2026
+      kind: vault-transit
+      keyName: field-keys    # required: the Transit key
+      mount: transit         # default
+```
+
+| Setting | Default | Meaning |
+| ------- | ------- | ------- |
+| `keyName` | required | The Transit key that wraps. Without it the entry is refused, `secrets.kek.config.invalid`. |
+| `mount` | `transit` | Where the Transit engine is mounted. |
+
+`TomVaultTransitKeyEncryptionKey.fromSettings(id, settings, provider: ...)`
+builds the key from an entry through a provider of the caller's, and the
+constructor takes `id`, `provider`, `keyName` and `mount`. The token's policy
+needs `update` on `<mount>/encrypt/<keyName>` and `<mount>/decrypt/<keyName>`.
+A Transit key rotated in Vault keeps decrypting what its earlier versions
+encrypted (down to its `min_decryption_version`), so a Transit rotation needs no
+`rewrap`; moving to another Transit key is a key-encryption-key rotation in
+`fieldEncryption.keys`.
+
+| Key | When |
+| --- | ---- |
+| `secrets.kek.config.invalid` | The entry has no `keyName`. |
+| `secrets.kek.failed` | Vault could not be reached, or refused the call — no such key or mount, a policy that denies it, or a wrapped key that does not decrypt under the asked data key id. |
+
 ## Error keys
 
 Every failure is a `TomSecretsException`; its message names the path, never a
@@ -235,9 +294,11 @@ The framework adds its own around them — `secrets.field.required`,
 
 | Suite | Settles |
 | ----- | ------- |
-| `test/vault_secrets_provider_test.dart` | `fromConfiguration`'s settings, environment fallbacks, AppRole preference and refusals; the token and namespace headers on `/v1/<path>`; a refused AppRole token replaced by one new login; an unreachable Vault failing by key without the secret. Runs against `MockClient`. |
-| `test/example_test.dart` | Runs `example/vault_secrets_example.dart` and requires exit 0. |
-| `test/vault_emulator_test.dart` | Tagged `emulator`. Against a real Vault: a KV version 2 field with its version, references resolved through `TomSecrets`, a rotation reaching a watcher, a KV version 1 entry, `not_found` for an absent path, an AppRole login reading what its policy allows and refused what it does not, and a wrong secret id unable to log in. Skips itself when no Vault answers. |
+| `test/vault/vault_secrets_provider_test.dart` | `fromConfiguration`'s settings, environment fallbacks, AppRole preference and refusals; the token and namespace headers on `/v1/<path>`; a refused AppRole token replaced by one new login; an unreachable Vault failing by key without the secret. Runs against `MockClient`. |
+| `test/vault/example_test.dart` | Runs `example/vault_secrets_example.dart` and requires exit 0. |
+| `test/vault/vault_emulator_test.dart` | Tagged `emulator`. Against a real Vault: a KV version 2 field with its version, references resolved through `TomSecrets`, a rotation reaching a watcher, a KV version 1 entry, `not_found` for an absent path, an AppRole login reading what its policy allows and refused what it does not, and a wrong secret id unable to log in. Skips itself when no Vault answers. |
+| `test/key_encryption_key_settings_test.dart` | KS-1 to KS-6, for all three key-encryption keys: a `vault-transit` entry's Transit key and mount (KS-2); an entry without its key refused with `secrets.kek.config.invalid` (KS-4); each library registering its kind with field encryption (KS-5). No emulator. |
+| `test/vault/vault_kek_emulator_test.dart` | Tagged `emulator`. Against the dev server, through the shared contract `test/support/key_encryption_key_contract.dart`: a data key wraps and unwraps under its own id (VT-1); a wrapped key does not unwrap under another id, `secrets.kek.failed` (VT-2); a keyring over the Transit key encrypts, rotates its data key and rewraps the data keys of an application-held key under it, and a fresh keyring holding only the Transit key reads everything (VT-3). The dev server mounts no Transit engine, so the test mounts it and creates the `aes256-gcm96` key `field-keys` itself. Skips itself when no Vault answers. |
 
 ```bash
 dart test                         # unit suite + example; emulator tests skip
@@ -246,7 +307,7 @@ dart test                         # unit suite + example; emulator tests skip
 
 `tool/run_vault_emulator_tests.sh` starts `hashicorp/vault:1.17` as a dev server on
 `127.0.0.1:18200` (`VAULT_TEST_PORT` overrides the port) with the root token
-`root`, waits for `/v1/sys/health`, runs `dart test --tags emulator` with
-`VAULT_TEST_ADDR` pointing at it, and removes the container. A run in which
-every emulator test skipped is reported as a failure, because it means Vault
-never answered. It needs Docker.
+`root`, waits for `/v1/sys/health`, runs
+`dart test --tags emulator test/vault` with `VAULT_TEST_ADDR` pointing at it,
+and removes the container. A run in which every emulator test skipped is
+reported as a failure, because it means Vault never answered. It needs Docker.

@@ -3,9 +3,10 @@
 `TomAwsSecretsProvider` answers every configuration reference that names the
 `aws` provider. This page covers the AWS side: how a reference names a secret,
 how the provider is configured, where its credentials come from, how requests
-are signed, how it reacts to rotation and refusal, and how its emulator suite
-runs. How references work in general — where they may appear, their
-precedence, the boot order and the refresh cycle — is in
+are signed, how it reacts to rotation and refusal, how a KMS key serves as a
+key-encryption key for field encryption, and how its emulator suite runs. How
+references work in general — where they may appear, their precedence, the boot
+order and the refresh cycle — is in
 [`tom_core_server/doc/configuration.md`](../../../core/tom_core_server/doc/configuration.md#secret-references).
 
 ## Table of Contents
@@ -17,6 +18,7 @@ precedence, the boot order and the refresh cycle — is in
 - [Credentials](#credentials)
 - [Signing](#signing)
 - [Rotation](#rotation)
+- [Key-encryption keys for field encryption](#key-encryption-keys-for-field-encryption)
 - [Error keys](#error-keys)
 - [Not Yet Implemented](#not-yet-implemented)
 - [Verification](#verification)
@@ -140,9 +142,11 @@ refresh after the start runs under the configured policies. A client passed as
 
 ## Credentials
 
-A `TomAwsCredentialsSource` is a `Future<TomAwsCredentials> Function()`,
-`TomAwsCredentials` being `tom_core_server`'s access key id, secret access key
-and optional session token. The source is called for **every request**, so it decides how long a set of
+A `TomAwsCredentialsSource` is `tom_core_server`'s
+`Future<TomAwsCredentials> Function()`, defined beside `TomAwsV4Signer`, and
+`TomAwsCredentials` that package's access key id, secret access key and
+optional session token; a provider imports both from
+`package:tom_core_server/tom_core_server.dart`. The source is called for **every request**, so it decides how long a set of
 credentials lives. `fromConfiguration` answers one fixed `TomAwsCredentials`
 built from the settings. A deployment on an instance profile, a container task
 role or an assumed role constructs the provider with a source that returns the
@@ -196,6 +200,64 @@ rotation Lambda or a `PutSecretValue` — is seen at the next refresh. A refresh
 that cannot read a secret keeps the last value and lists the reference in
 `TomSecretsRefresh.failed`; only the first `TomSecrets.load` fails the boot.
 
+## Key-encryption keys for field encryption
+
+`TomAwsKmsKeyEncryptionKey` (`lib/src/aws/aws_kms_key.dart`) is a
+`TomKeyEncryptionKey` for `tom_core_server`'s field-level encryption whose key
+never leaves AWS KMS: a data key is wrapped with KMS `Encrypt` and unwrapped
+with `Decrypt` (the `TrentService` JSON 1.1 API, `x-amz-target:
+TrentService.<Action>`), signed with `TomAwsV4Signer` for the service `kms`.
+Every call carries the encryption context `{"tom-data-key": <data key id>}`
+(`TomAwsKmsKeyEncryptionKey.contextKey`), so KMS refuses to decrypt a wrapped
+key under any other id. How field encryption uses its key-encryption keys is in
+[`tom_core_server/doc/object_persistence.md`](../../../core/tom_core_server/doc/object_persistence.md#keys-held-by-a-key-management-service).
+
+`TomAwsKmsKeyEncryptionKey.register()` registers the kind `aws-kms`
+(`TomAwsKmsKeyEncryptionKey.kind`) with `TomFieldEncryption.registerKeyKind`, so
+a `fieldEncryption.keys` entry of that kind builds its key. It runs before
+`TomServer.start` applies `fieldEncryption`; it takes the same `config` and
+`environment` as `fromConfiguration`:
+
+```dart
+TomAwsKmsKeyEncryptionKey.register(environment: Platform.environment);
+```
+
+```yaml
+fieldEncryption:
+  datasource: main
+  keys:
+    - id: kms-2026
+      kind: aws-kms
+      kmsKeyId: alias/field-keys       # required
+      region: eu-central-1             # default: secrets.aws / AWS_REGION
+      endpoint: http://localhost:4566  # default: AWS_ENDPOINT_URL_KMS
+```
+
+| Setting | Default | Meaning |
+| ------- | ------- | ------- |
+| `kmsKeyId` | required | The KMS key that wraps: a key id, an ARN or an alias such as `alias/field-keys`. Without it the entry is refused, `secrets.kek.config.invalid`. |
+| `region` | the provider's region (`secrets.aws.region`, `AWS_REGION`, `AWS_DEFAULT_REGION`) | The region the KMS key lives in. |
+| `endpoint` | `AWS_ENDPOINT_URL_KMS`, else `https://kms.<region>.amazonaws.com/` | A VPC endpoint, or an emulator. |
+
+The credentials are the secrets provider's — `secrets.aws` or the standard
+`AWS_*` variables, read as [Configuration](#configuration) describes — so the
+entry carries no secret. `TomAwsKmsKeyEncryptionKey.fromSettings(id, settings)`
+builds the key `register` builds; the constructor takes a
+`TomAwsCredentialsSource` of its own, for a role's temporary credentials.
+`call(action, request)` is the signed KMS client for any action (the emulator
+suite creates its key with `CreateKey`), and `close()` closes the HTTP client.
+Its calls go through a `TomResilientClient`, like the provider's.
+
+The principal needs `kms:Encrypt` and `kms:Decrypt` on the key. A KMS key
+rotated by KMS keeps decrypting what its earlier key material encrypted, so
+automatic key rotation needs no `rewrap`; moving to another KMS key is a
+key-encryption-key rotation in `fieldEncryption.keys`.
+
+| Key | When |
+| --- | ---- |
+| `secrets.kek.config.invalid` | The entry has no `kmsKeyId`. |
+| `secrets.kek.failed` | KMS could not be reached, or refused the call — a key it does not hold, access denied, or a wrapped key that does not decrypt under the asked data key id (encryption context mismatch); the message carries KMS's error type. |
+
 ## Error keys
 
 Every failure is a `TomSecretsException`; its message names the secret id and
@@ -226,9 +288,11 @@ The framework adds its own around them — `secrets.field.required`,
 
 | Suite | Settles |
 | ----- | ------- |
-| `test/aws_secrets_provider_test.dart` | `fromConfiguration`'s settings, the environment fallbacks and its refusals; a SigV4-signed `GetSecretValue` for the secret id; `ResourceNotFoundException` mapped to `not_found` and other refusals to `failed`; a binary secret that is not text refused by key. Runs against `MockClient`. |
-| `test/example_test.dart` | Runs `example/aws_secrets_example.dart` and requires exit 0. |
-| `test/aws_emulator_test.dart` | Tagged `emulator`. Against LocalStack: a plain secret with its version, a member of a JSON secret resolved through `TomSecrets`, a binary secret that is text, a rotation reaching a watcher, and `not_found` for an absent secret. Skips itself when LocalStack does not answer. |
+| `test/aws/aws_secrets_provider_test.dart` | `fromConfiguration`'s settings, the environment fallbacks and its refusals; a SigV4-signed `GetSecretValue` for the secret id; `ResourceNotFoundException` mapped to `not_found` and other refusals to `failed`; a binary secret that is not text refused by key. Runs against `MockClient`. |
+| `test/aws/example_test.dart` | Runs `example/aws_secrets_example.dart` and requires exit 0. |
+| `test/aws/aws_emulator_test.dart` | Tagged `emulator`. Against LocalStack: a plain secret with its version, a member of a JSON secret resolved through `TomSecrets`, a binary secret that is text, a rotation reaching a watcher, and `not_found` for an absent secret. Skips itself when LocalStack does not answer. |
+| `test/key_encryption_key_settings_test.dart` | KS-1 to KS-6, for all three key-encryption keys: an `aws-kms` entry's KMS key, and its region and endpoint from the entry or the secrets provider's settings (KS-1); an entry without its key refused with `secrets.kek.config.invalid` (KS-4); each library registering its kind with field encryption (KS-5). No emulator. |
+| `test/aws/aws_kek_emulator_test.dart` | Tagged `emulator`. Against LocalStack's KMS, through the shared contract `test/support/key_encryption_key_contract.dart`: a data key wraps and unwraps under its own id (KMS-1); a wrapped key does not unwrap under another id, `secrets.kek.failed` (KMS-2); a keyring over the KMS key encrypts, rotates its data key and rewraps the data keys of an application-held key under it, and a fresh keyring holding only the KMS key reads everything (KMS-3); a KMS key KMS does not hold refused with `secrets.kek.failed` (KMS-4). Creates its KMS key with `call('CreateKey', ...)`. Skips itself when LocalStack does not answer. |
 
 ```bash
 dart test                         # unit suite + example; emulator tests skip
@@ -236,8 +300,9 @@ dart test                         # unit suite + example; emulator tests skip
 ```
 
 `tool/run_aws_emulator_tests.sh` starts `localstack/localstack:3.8` with only
-Secrets Manager enabled on `127.0.0.1:14566` (`AWS_TEST_PORT` overrides the
-port), waits until `/_localstack/health` reports the service available, runs
-`dart test --tags emulator` with `AWS_TEST_ENDPOINT` pointing at it, and
-removes the container. A run in which every emulator test skipped is reported
+Secrets Manager and KMS enabled (`SERVICES=secretsmanager,kms`) on
+`127.0.0.1:14566` (`AWS_TEST_PORT` overrides the port), waits until
+`/_localstack/health` reports both services available, runs
+`dart test --tags emulator test/aws` with `AWS_TEST_ENDPOINT` pointing at it,
+and removes the container. A run in which every emulator test skipped is reported
 as a failure, because it means LocalStack never answered. It needs Docker.

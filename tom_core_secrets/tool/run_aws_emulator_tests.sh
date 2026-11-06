@@ -9,11 +9,12 @@ NAME=tom-core-secrets-aws-test
 PORT="${AWS_TEST_PORT:-14566}"
 docker rm -f "$NAME" >/dev/null 2>&1 || true
 docker run -d --name "$NAME" -p "127.0.0.1:$PORT:4566" \
-  -e SERVICES=secretsmanager localstack/localstack:3.8 >/dev/null
+  -e SERVICES=secretsmanager,kms localstack/localstack:3.8 >/dev/null
 trap 'docker rm -f "$NAME" >/dev/null 2>&1 || true' EXIT
 for _ in $(seq 1 90); do
-  curl -sf "http://127.0.0.1:$PORT/_localstack/health" 2>/dev/null \
-    | grep -q '"secretsmanager": "\(available\|running\)"' && break
+  health="$(curl -sf "http://127.0.0.1:$PORT/_localstack/health" 2>/dev/null || true)"
+  printf '%s' "$health" | grep -q '"secretsmanager": "\(available\|running\)"' &&
+    printf '%s' "$health" | grep -q '"kms": "\(available\|running\)"' && break
   sleep 1
 done
 output="$(AWS_TEST_ENDPOINT="http://127.0.0.1:$PORT/" dart test --tags emulator test/aws 2>&1)" || { printf '%s\n' "$output"; exit 1; }

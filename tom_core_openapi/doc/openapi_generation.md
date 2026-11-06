@@ -353,12 +353,12 @@ reflected classes with one simple name would share a component name, so the
 second is refused (`openapi.schema.ambiguous_type`) rather than silently
 described by the first.
 
-**Why declarations are read from their `Type`.** The generated reflection data
-can attach the wrong class to a type-argument mirror — a `List<String>` field
-whose argument mirror names another class. The reflected `Type` of a field or
-parameter is always right and keeps every type argument, so the shape is parsed
-from it (`TomOpenApiDartType.fromDeclaration`); only the top-level nullability,
-which a `Type` erases, comes from the mirror.
+**Why declarations are read from their `Type`.** A type-argument mirror is the
+mirror of its class, looked up by `Type`, so it carries no nullability: the
+argument of a `List<String?>` field reads as `String`. The reflected `Type` of a
+field or parameter keeps every type argument with its nullability, so the shape
+is parsed from it (`TomOpenApiDartType.fromDeclaration`); only the top-level
+nullability, which a `Type` erases, comes from the mirror.
 
 ## The cross-reference check
 

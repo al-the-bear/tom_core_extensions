@@ -1,0 +1,30 @@
+name: tom_core_message_bus_gcp
+description: >-
+  The Google Cloud adapter of the Tom message bus: TomMessageBus over Pub/Sub —
+  a topic per topic, a subscription per consumer group — through its REST API,
+  authenticated with a service account or the metadata server. Passes the
+  bus's conformance suite.
+version: 0.1.0
+
+repository: https://github.com/al-the-bear/tom_core_extensions
+homepage: https://github.com/al-the-bear/tom_core_extensions/tree/main/tom_core_message_bus_gcp
+
+environment:
+  sdk: ^3.10.0
+
+dependencies:
+  # The HTTP requests to Pub/Sub and the metadata server.
+  http: ^1.6.0
+  # The contract this package implements, the trace helpers and the codec.
+  tom_core_message_bus:
+    path: ../../core/tom_core_message_bus
+  # The exception base, the logging and the resilient HTTP client.
+  tom_core_kernel:
+    path: ../../core/tom_core_kernel
+  # TomFcmServiceAccountCredential, the Google service-account token flow.
+  tom_core_server:
+    path: ../../core/tom_core_server
+
+dev_dependencies:
+  lints: ^6.0.0
+  test: ^1.28.0

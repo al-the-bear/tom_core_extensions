@@ -110,11 +110,10 @@ class TomOpenApiDartType {
   /// Reads the type of a field or parameter.
   ///
   /// The shape comes from the declaration's reflected [Type], which keeps
-  /// every type argument; only the top-level nullability, which the [Type]
-  /// erases, comes from the mirror. The mirror's own type arguments are not
-  /// used: the generated reflection data can attach the wrong class to an
-  /// argument (a `List<String>` field whose argument mirror names another
-  /// class), where the [Type] is always right.
+  /// every type argument with its nullability; only the top-level
+  /// nullability, which the [Type] erases, comes from the mirror. The mirror's
+  /// own type arguments are not used: each is the mirror of its class, looked
+  /// up by `Type`, so a `List<String?>` argument reads as `String`.
   factory TomOpenApiDartType.fromDeclaration(VariableMirror declaration) {
     bool nullable;
     try {

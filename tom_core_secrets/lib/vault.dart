@@ -7,3 +7,4 @@
 library;
 
 export 'src/vault/vault_secrets_provider.dart';
+export 'src/vault/vault_transit_key.dart';

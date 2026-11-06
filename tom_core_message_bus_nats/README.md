@@ -21,12 +21,15 @@ constructing this bus instead of the in-memory one; nothing above the contract
 changes. The adapter is built on [`dart_nats`](https://pub.dev/packages/dart_nats),
 the maintained pure-Dart NATS client with JetStream support.
 
-The bus has two further adapters in `tom_core_extensions`:
+The bus has four further adapters in `tom_core_extensions`:
 [`tom_core_message_bus_rabbitmq`](../tom_core_message_bus_rabbitmq/README.md)
 over RabbitMQ, built on a fork of `dart_amqp` that carries the
-publisher-confirm fix the unmaintained upstream lacks, and
+publisher-confirm fix the unmaintained upstream lacks,
 [`tom_core_message_bus_kafka`](../tom_core_message_bus_kafka/README.md) over
-Kafka through a REST proxy.
+Kafka through a REST proxy,
+[`tom_core_message_bus_aws`](../tom_core_message_bus_aws/README.md) over Amazon
+SNS and SQS, and [`tom_core_message_bus_gcp`](../tom_core_message_bus_gcp/README.md)
+over Google Cloud Pub/Sub.
 
 The contract is **at least once**, as for every bus: a message is delivered
 until a consumer of its group acknowledges it or it is dead-lettered, under the

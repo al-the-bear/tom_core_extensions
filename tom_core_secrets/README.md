@@ -16,7 +16,11 @@ refreshed on rotation. One library per provider:
 | `package:tom_core_secrets/vault.dart` | HashiCorp Vault — `TomVaultSecretsProvider` | `vault` |
 | `package:tom_core_secrets/tom_core_secrets.dart` | all three | — |
 
-Each implements `tom_core_server`'s `TomSecretsProvider`. The device keychain a
+Each implements `tom_core_server`'s `TomSecretsProvider`. Each library also
+offers a key held by its service — an AWS KMS key, a Vault Transit key, a Key
+Vault key — as a key-encryption key for `tom_core_server`'s field-level
+encryption; see [Key-encryption keys for field
+encryption](#key-encryption-keys-for-field-encryption). The device keychain a
 client application keeps its settings key in is a different thing — it is
 `tom_core_storage`'s `TomSecretStore`.
 
@@ -67,7 +71,8 @@ instance or task role.
 | Type | What it does |
 | ---- | ------------ |
 | `TomAwsSecretsProvider` | The `TomSecretsProvider` over Secrets Manager: `fetch` calls `GetSecretValue` for a secret id, answers its `SecretString`, or its `SecretBinary` when that is UTF-8 text, with the `VersionId`. `fromConfiguration` builds one from `secrets.aws`, falling back to the standard `AWS_*` variables. `call` is the signed client for any Secrets Manager action. |
-| `TomAwsCredentialsSource` | `Future<TomAwsCredentials> Function()` — where each request's credentials come from. |
+| `TomAwsCredentialsSource` | `tom_core_server`'s `Future<TomAwsCredentials> Function()`, defined beside `TomAwsV4Signer` — where each request's credentials come from. |
+| `TomAwsKmsKeyEncryptionKey` | A key-encryption key for field encryption held by AWS KMS, the kind `aws-kms`: wraps a data key with KMS `Encrypt` and unwraps it with `Decrypt`, the data key id bound as the encryption context. |
 
 ### Quick start
 
@@ -155,7 +160,7 @@ key, so a boot that wants it at load applies it first — see
 | Document | Covers |
 | -------- | ------ |
 | [doc/index.md](doc/index.md) | The catalogue of this package's documentation |
-| [doc/aws_secrets.md](doc/aws_secrets.md) | The reference syntax, configuration, credentials and roles, signing, refresh, the error keys and the emulator suite |
+| [doc/aws_secrets.md](doc/aws_secrets.md) | The reference syntax, configuration, credentials and roles, signing, refresh, the KMS key-encryption key, the error keys and the emulator suite |
 | [doc/api/api_summary_aws.md](doc/api/api_summary_aws.md) | Every public type and member |
 | [`tom_core_server/doc/configuration.md`](../../core/tom_core_server/doc/configuration.md#secret-references) | Secret references in general: syntax, precedence, boot order, rotation, writing a provider |
 
@@ -201,6 +206,7 @@ no Azure SDK in between.
 | `TomAzureManagedIdentityCredential` | The host's managed identity: the App Service / Container Apps identity endpoint when `IDENTITY_ENDPOINT` and `IDENTITY_HEADER` are set, the instance metadata endpoint otherwise; system-assigned, or user-assigned by client id. |
 | `TomAzureStaticTokenCredential` | A token obtained elsewhere — `az account get-access-token`, or a test. |
 | `tomAzureKeyVaultScope` · `tomAzureKeyVaultResource` | The scope and the resource a Key Vault token is requested for. |
+| `TomAzureKeyVaultKeyEncryptionKey` | A key-encryption key for field encryption held by Key Vault, the kind `azure-keyvault`: wraps a data key with `wrapkey` and unwraps it with `unwrapkey` (`RSA-OAEP-256`, `RSA-OAEP` or `A256KW`), the data key id bound into the wrapped bytes and the wrapping key version recorded with them. |
 
 ### Quick start
 
@@ -286,7 +292,7 @@ key, so a boot that wants it at load applies it first — see
 | Document | Covers |
 | -------- | ------ |
 | [doc/index.md](doc/index.md) | The catalogue of this package's documentation |
-| [doc/azure_secrets.md](doc/azure_secrets.md) | The reference syntax, configuration, the three credentials and token caching, refresh, the error keys and the emulator suite |
+| [doc/azure_secrets.md](doc/azure_secrets.md) | The reference syntax, configuration, the three credentials and token caching, refresh, the Key Vault key-encryption key, the error keys and the emulator suite |
 | [doc/api/api_summary_azure.md](doc/api/api_summary_azure.md) | Every public type and member |
 | [`tom_core_server/doc/configuration.md`](../../core/tom_core_server/doc/configuration.md#secret-references) | Secret references in general: syntax, precedence, boot order, rotation, writing a provider |
 
@@ -329,6 +335,7 @@ secret id exchanged for a token that is renewed by logging in again).
 | `TomVaultAuth` | How the provider obtains its token — `token` and `invalidate`. |
 | `TomVaultTokenAuth` | A fixed token. |
 | `TomVaultAppRoleAuth` | AppRole: logs in at `auth/<mount>/login`, keeps the token for nine tenths of its lease, and logs in again when the lease runs out or Vault refuses the token. |
+| `TomVaultTransitKeyEncryptionKey` | A key-encryption key for field encryption held by Vault's Transit engine, the kind `vault-transit`: wraps a data key with Transit `encrypt` and unwraps it with `decrypt`, the data key id bound as associated data. |
 
 ### Quick start
 
@@ -421,20 +428,71 @@ key, so a boot that wants it at load applies it first — see
 | Document | Covers |
 | -------- | ------ |
 | [doc/index.md](doc/index.md) | The catalogue of this package's documentation |
-| [doc/vault_secrets.md](doc/vault_secrets.md) | The reference syntax, configuration, the two auth methods, namespaces, refresh, the error keys and the emulator suite |
+| [doc/vault_secrets.md](doc/vault_secrets.md) | The reference syntax, configuration, the two auth methods, namespaces, refresh, the Transit key-encryption key, the error keys and the emulator suite |
 | [doc/api/api_summary_vault.md](doc/api/api_summary_vault.md) | Every public type and member |
 | [`tom_core_server/doc/configuration.md`](../../core/tom_core_server/doc/configuration.md#secret-references) | Secret references in general: syntax, precedence, boot order, rotation, writing a provider |
 
 The AWS and Azure providers are [`aws.dart`](#aws-secrets-manager-awsdart)
 and [`azure.dart`](#azure-key-vault-azuredart).
 
+## Key-encryption keys for field encryption
+
+`tom_core_server`'s field-level encryption keeps its data keys wrapped under a
+**key-encryption key**. An application-held AES key is built in; each library
+of this package adds a key that never leaves its service, as a `kind` of
+`fieldEncryption.keys` entry:
+
+| Kind | Class | Library | Wraps with | Settings |
+| ---- | ----- | ------- | ---------- | -------- |
+| `aws-kms` | `TomAwsKmsKeyEncryptionKey` | `aws.dart` | KMS `Encrypt` / `Decrypt`, encryption context `{"tom-data-key": <id>}` | `kmsKeyId` (required), `region`, `endpoint` |
+| `vault-transit` | `TomVaultTransitKeyEncryptionKey` | `vault.dart` | Transit `encrypt` / `decrypt`, associated data `tom-data-key:<id>` | `keyName` (required), `mount` (default `transit`) |
+| `azure-keyvault` | `TomAzureKeyVaultKeyEncryptionKey` | `azure.dart` | Key Vault `wrapkey` / `unwrapkey`, the id framed into the wrapped bytes | `keyName` (required), `keyVersion`, `algorithm` (default `RSA-OAEP-256`) |
+
+Each class's `register()` registers its kind with
+`TomFieldEncryption.registerKeyKind`; a boot calls it before `TomServer.start`
+applies `fieldEncryption`. The key reaches its service with the settings of the
+library's secrets provider (`secrets.aws`, `secrets.vault`, `secrets.azure`, or
+their environment variables), so the entry carries no secret:
+
+```dart
+import 'dart:io';
+
+import 'package:tom_core_secrets/aws.dart';
+
+void registerFieldKeys() =>
+    TomAwsKmsKeyEncryptionKey.register(environment: Platform.environment);
+```
+
+```yaml
+fieldEncryption:
+  datasource: main
+  keys:
+    - id: kms-2026
+      kind: aws-kms
+      kmsKeyId: alias/field-keys
+    - id: kek-2025                   # the AES key it replaces, until rewrap
+      key: "secret:vault:secret/data/billing#fieldKek"
+```
+
+Listing the service key first and the AES key after it, then running
+`TomFieldEncryption.keyring!.rewrap()`, moves every data key under the service
+key. A malformed entry is refused with `secrets.kek.config.invalid`; a service
+that refuses or cannot be reached, or a wrapped key that does not unwrap under
+the asked data key id, fails with `secrets.kek.failed`. The settings, the
+permissions and the tests are in each provider's guide —
+[AWS](doc/aws_secrets.md#key-encryption-keys-for-field-encryption),
+[Vault](doc/vault_secrets.md#key-encryption-keys-for-field-encryption),
+[Azure](doc/azure_secrets.md#key-encryption-keys-for-field-encryption) — and
+the field-encryption side in
+[`tom_core_server/doc/object_persistence.md`](../../core/tom_core_server/doc/object_persistence.md#keys-held-by-a-key-management-service).
+
 ## Dependencies
 
 | Dependency | Kind | For |
 | ---------- | ---- | --- |
-| `tom_core_server` | runtime | `TomSecretsProvider`, `TomSecretPayload`, `TomSecretsException`, `TomServerConfigResourceProvider`, the SigV4 signer `TomAwsV4Signer` with `TomAwsCredentials` (`aws.dart`), and the kernel's `TomResilientClient` it re-exports — the default client |
+| `tom_core_server` | runtime | `TomSecretsProvider`, `TomSecretPayload`, `TomSecretsException`, `TomServerConfigResourceProvider`, `TomKeyEncryptionKey` and `TomFieldEncryption.registerKeyKind` (the key-encryption keys), the SigV4 signer `TomAwsV4Signer` with `TomAwsCredentials` and `TomAwsCredentialsSource` (`aws.dart`), and the kernel's `TomResilientClient` it re-exports — the default client |
 | `tom_core_kernel` | runtime | the framework base the server builds on |
-| `http` | runtime | the Secrets Manager, Key Vault and Vault HTTP APIs |
+| `http` | runtime | the Secrets Manager, KMS, Key Vault and Vault HTTP APIs |
 | `crypto` | runtime | SHA-256 and HMAC for SigV4 (`aws.dart`) |
 | `test`, `lints` | dev | the suites |
 

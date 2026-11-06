@@ -7,3 +7,4 @@
 library;
 
 export 'src/azure/azure_secrets_provider.dart';
+export 'src/azure/azure_key_vault_key.dart';
