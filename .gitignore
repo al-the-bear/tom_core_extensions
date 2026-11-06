@@ -117,27 +117,6 @@ reflectable.dart
 **/generated_plugin_registrant.h
 **/generated_plugins.cmake
 
-# API documentation.
-#
-# The *generated* reference (dartdoc's `doc/api/`, and `doc/api/reference/`) is
-# output and stays out of version control. The hand-written
-# `api_summary_<module>.md` / `api_reference_<module>.md` files are **not**
-# output — `tom_specs_documentation_standard.md` §3.1 and
-# `_copilot_guidelines/dart/api_summary_creation.md` both place them here — so
-# they are re-included below.
-#
-# The pattern excludes the directory's *direct children* (`**/doc/api/*`),
-# which takes dartdoc's files and every subdirectory (`reference/`, its
-# library folders, `static-assets/`) with it. Two forms do not work: git
-# cannot re-include a file whose parent directory is excluded, so
-# `**/doc/api/` makes the negations below dead; and pub does not honour the
-# negations under `**/doc/api/**`, so with that form git tracked the
-# summaries while every published archive left them out.
-# tom_specs_clitool/test/pub_archive_ignores_test.dart asks pub itself.
-**/doc/api/*
-!**/doc/api/api_summary_*.md
-!**/doc/api/api_reference_*.md
-
 # Symbols
 app.*.symbols
 
