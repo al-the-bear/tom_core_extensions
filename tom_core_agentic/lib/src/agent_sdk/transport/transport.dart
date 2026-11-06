@@ -212,8 +212,8 @@ final class AgentSdkConversation extends AgentSdkCompletionEvent {
 ///
 /// Counted by the provider's gap bound and otherwise dropped. [source] names
 /// the evidence. [unmappedType] is set when the far end sent a message kind
-///  has no row for — the provider logs it once per run by type, so a
-/// new SDK message is noticed rather than silently absorbed.
+/// the translator has no row for — the provider logs it once per run by type,
+/// so a new SDK message is noticed rather than silently absorbed.
 final class AgentSdkLiveness extends AgentSdkCompletionEvent {
   /// What the far end did — `stream_event`, `tool call`, …
   final String source;

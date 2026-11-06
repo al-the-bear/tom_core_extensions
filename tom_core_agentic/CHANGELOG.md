@@ -1,3 +1,21 @@
+## 2.0.1
+
+- **`tom_vscode_scripting_api` ^3.0.0.** The constraint follows the scripting
+  API's 3.0.0, which removed `AiPromptApi` and `AiConversationApi`; this
+  package uses neither. A package resolving 2.0.0 stays on the scripting API's
+  2.x.
+- **A failed result's errors are the failure.** A result the CLI server marks
+  `is_error` with no `result` text but an `errors` list (Claude Code answering
+  a resume of a conversation it does not know: "No conversation found with
+  session ID: …") fails the run with those errors as its message, where it
+  failed with "The AI server reported a failed run." and nothing more.
+- **`agentSdkLooksLikeResumeError` knows "no conversation found"**, so
+  `AgentSdkSessionProvider` with a resume strategy evicts the stored id and
+  runs the request again in a fresh conversation after that answer.
+- The repository-bound gate tests (`test/ai_citation_test.dart`,
+  `test/formatting_test.dart`) are not shipped: they import the repository's
+  tooling, which no archive holds.
+
 ## 2.0.0
 
 One Agent SDK provider. The package carried two over the `tom_llm` contract —
