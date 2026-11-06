@@ -1,0 +1,14 @@
+# Files kept in the repository but not shipped in the published archive.
+#
+# With a .pubignore present pub no longer reads .gitignore, so the lines that
+# file needs are repeated here first.
+.dart_tool/
+pubspec.lock
+node/node_modules/
+
+# Tests bound to this repository: each imports a file outside the package (the
+# repository's gate tooling, or another package's test contract), so it cannot
+# load from an installed archive. They run here; `tom_ai/core/tool/check_shipped_imports.py`
+# refuses a shipped file that imports outside its package.
+test/ai_citation_test.dart
+test/formatting_test.dart
