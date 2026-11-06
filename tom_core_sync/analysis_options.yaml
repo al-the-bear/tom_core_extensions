@@ -1,2 +1,12 @@
 # Include shared workspace analysis options
 include: ../analysis_options.yaml
+
+analyzer:
+  errors:
+    # This package takes workspace packages by relative path, the workspace's
+    # development mode (`_copilot_guidelines/dart/project_republishing.md`).
+    # It reaches pub.dev from the staged copy `_bin/publishing/` builds, which
+    # writes every path dependency as a version, so the analyzer's check that
+    # a publishable package has no path dependency is answered there: the
+    # staged copy's `dart pub publish --dry-run` refuses one that remains.
+    invalid_dependency: ignore

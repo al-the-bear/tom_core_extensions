@@ -6,3 +6,14 @@ linter:
     # the ratchet rather than a later coverage sweep.
     public_member_api_docs: true
     comment_references: true
+
+analyzer:
+  errors:
+    # This package takes workspace packages by relative path, the workspace's
+    # development mode (`_copilot_guidelines/dart/project_republishing.md`);
+    # the staged copy `_bin/publishing/` builds writes them as versions. Its
+    # `dart_amqp` is a git dependency on the fork, which the staged copy keeps
+    # and pub.dev refuses: this package publishes only once the fork is a
+    # published package. The staged copy's `dart pub publish --dry-run` says
+    # so, so the analyzer's check is not repeated in the editor.
+    invalid_dependency: ignore
