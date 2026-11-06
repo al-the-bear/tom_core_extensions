@@ -1,0 +1,6 @@
+tags:
+  kafka:
+    # Needs a Kafka cluster behind a REST proxy. tool/run_kafka_tests.sh starts
+    # Redpanda and Confluent REST Proxy in Docker and runs these tests; without
+    # them they skip themselves.
+    timeout: 4x

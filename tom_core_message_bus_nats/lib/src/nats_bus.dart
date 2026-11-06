@@ -290,8 +290,13 @@ class TomNatsMessageBus implements TomMessageBus {
       group,
       _js.consumer<dynamic>(stream, name),
       maxDeliveries,
-      (message, attempt) =>
-          _handle(message, attempt, group, effective, handler),
+      (message, attempt) => tomDispatch(
+        message,
+        attempt: attempt,
+        group: group,
+        codec: effective,
+        handler: handler,
+      ),
     );
     if (ephemeral) {
       consumer.onLastCancel = () => _releaseEphemeral(stream, topic, group);
@@ -382,41 +387,6 @@ class TomNatsMessageBus implements TomMessageBus {
     }
   }
 
-  static Future<(TomBusOutcome, String?)> _handle<T>(
-    TomBusMessage message,
-    int attempt,
-    String group,
-    TomBusCodec<T> codec,
-    TomBusHandler<T> handler,
-  ) async {
-    final T payload;
-    try {
-      payload = codec.decode(message.payload);
-    } on TomBusException {
-      return (TomBusOutcome.deadLettered, 'undecodable');
-    }
-    final delivery = TomBusDelivery<T>(
-      message: message,
-      payload: payload,
-      attempt: attempt,
-      group: group,
-    );
-    try {
-      await TomBusTrace.delivering(
-        message,
-        group,
-        () async => handler(delivery),
-      );
-    } on Object catch (error) {
-      tomLog.warn(
-        'Message ${message.id} of ${message.topic} failed in $group, '
-        'attempt $attempt: $error',
-      );
-      if (delivery.outcome == null) delivery.reject(reason: '$error');
-    }
-    return (delivery.outcome ?? TomBusOutcome.acknowledged, delivery.reason);
-  }
-
   /// [received] as the message it carries.
   TomBusMessage _messageOf(String topic, Message<dynamic> received) {
     final headers = <String, String>{...?received.header?.headers};
@@ -451,12 +421,7 @@ class TomNatsMessageBus implements TomMessageBus {
     String reason,
     int attempts,
   ) => _send(
-    message.withHeaders({
-      TomBusHeaders.deadLetterTopic: message.topic,
-      TomBusHeaders.deadLetterGroup: group,
-      TomBusHeaders.deadLetterReason: reason,
-      TomBusHeaders.deadLetterAttempts: '$attempts',
-    }, topic: tomDeadLetterTopic(message.topic)),
+    tomDeadLetter(message, group: group, reason: reason, attempts: attempts),
   );
 
   @override

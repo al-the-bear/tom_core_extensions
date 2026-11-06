@@ -21,10 +21,12 @@ constructing this bus instead of the in-memory one; nothing above the contract
 changes. The adapter is built on [`dart_nats`](https://pub.dev/packages/dart_nats),
 the maintained pure-Dart NATS client with JetStream support.
 
-NATS is the first broker the bus has an adapter for. RabbitMQ's pure-Dart
-client, `dart_amqp`, has had no commit since May 2024 and leaves submitted
-fixes unmerged, so the first adapter is built on the client that is
-maintained. RabbitMQ and Kafka are not covered.
+The bus has two further adapters in `tom_core_extensions`:
+[`tom_core_message_bus_rabbitmq`](../tom_core_message_bus_rabbitmq/README.md)
+over RabbitMQ, built on a fork of `dart_amqp` that carries the
+publisher-confirm fix the unmaintained upstream lacks, and
+[`tom_core_message_bus_kafka`](../tom_core_message_bus_kafka/README.md) over
+Kafka through a REST proxy.
 
 The contract is **at least once**, as for every bus: a message is delivered
 until a consumer of its group acknowledges it or it is dead-lettered, under the
@@ -53,7 +55,7 @@ Dart SDK `^3.10.0`. The server must run with JetStream enabled
 | A stream per topic | `TOMBUS_<topic>_<hash>`, holding the subject `<subjectPrefix>.<topic>`, created on first use with the bus's `retention` as its maximum age. |
 | A durable consumer per group | A pull consumer with the deliver policy `new` and explicit acknowledgement, shared by every consumer of the group. |
 | An unnamed consumer per ephemeral group | A pull consumer without a durable name and with `inactive_threshold` `ephemeralInactivity` (30 s), shared by the group's consumers in one bus and deleted when the last of them cancels; the server removes it after the threshold when a process stops without cancelling. |
-| Settling | Acknowledge is `+ACK`, redelivery `-NAK`, a dead letter a publish to `<topic>.dlq` followed by `+TERM`. |
+| Settling | Each delivery goes through `tomDispatch`; acknowledge is `+ACK`, redelivery `-NAK`, a dead letter a publish to `<topic>.dlq` followed by `+TERM`. |
 | The attempt | Read from the delivered count in JetStream's reply subject. |
 | Duplicate detection | The message id travels as `Nats-Msg-Id`. |
 | Message fields | Id, key and publication time travel in the headers `Tom-Bus-Id`, `Tom-Bus-Key` and `Tom-Bus-Published-At`; the payload is the message's JSON. |
@@ -124,7 +126,7 @@ dart run example/nats_message_bus_example.dart
 | Dependency | Kind | For |
 | ---------- | ---- | --- |
 | `dart_nats` | runtime | The NATS client: the connection, JetStream streams, durable pull consumers, ack / nak / term |
-| `tom_core_message_bus` | runtime | `TomMessageBus`, `TomBusMessage`, `TomBusDelivery`, `TomBusCodec`, `TomBusTrace`, `tomCheckSubscription`, `tomDeadLetterTopic`, `TomBusException` |
+| `tom_core_message_bus` | runtime | `TomMessageBus`, `TomBusMessage`, `TomBusCodec`, `TomBusTrace`, `tomDispatch`, `tomDeadLetter`, `tomCheckSubscription`, `TomBusException` |
 | `tom_core_kernel` | runtime | The exception base and `tomLog` |
 | `tom_core_server` | dev | `TomBusRelay` and `TomBusInvalidationChannel`, for the relay-through-NATS and invalidation tests |
 | `test`, `lints` | dev | The suites and analysis |

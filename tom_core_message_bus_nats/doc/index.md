@@ -17,3 +17,5 @@ a bus; the pages below carry the detail.
 | [`tom_core_message_bus/doc/message_bus.md`](../../../core/tom_core_message_bus/doc/message_bus.md) | The `TomMessageBus` contract, codecs, headers and trace, writing an adapter, and the conformance suite |
 | [`tom_core_message_bus/doc/api/api_summary_message_bus.md`](../../../core/tom_core_message_bus/doc/api/api_summary_message_bus.md) | The contract's types: `TomMessageBus`, `TomBusMessage`, `TomBusDelivery`, `TomBusCodec`, `TomBusException` and the rest |
 | [`tom_core_server/doc/messaging.md`](../../../core/tom_core_server/doc/messaging.md#the-bus-relay) § The Bus Relay | `TomBusRelay`: messages queued in a database transaction and published to a bus after the commit |
+| [`tom_core_message_bus_rabbitmq/doc/rabbitmq_message_bus.md`](../../tom_core_message_bus_rabbitmq/doc/rabbitmq_message_bus.md) | The RabbitMQ adapter |
+| [`tom_core_message_bus_kafka/doc/kafka_message_bus.md`](../../tom_core_message_bus_kafka/doc/kafka_message_bus.md) | The Kafka adapter, over a REST proxy |

@@ -10,10 +10,10 @@ NAME=tom-core-message-bus-nats-test
 PORT="${NATS_TEST_PORT:-14222}"
 MONITOR="${NATS_TEST_MONITOR_PORT:-18222}"
 IMAGE="${NATS_IMAGE:-nats:2.10-alpine}"
-docker rm -f "$NAME" >/dev/null 2>&1 || true
+docker rm -fv "$NAME" >/dev/null 2>&1 || true
 docker run -d --name "$NAME" -p "127.0.0.1:$PORT:4222" -p "127.0.0.1:$MONITOR:8222" \
   "$IMAGE" -js -m 8222 >/dev/null
-trap 'docker rm -f "$NAME" >/dev/null 2>&1 || true' EXIT
+trap 'docker rm -fv "$NAME" >/dev/null 2>&1 || true' EXIT
 for _ in $(seq 1 60); do
   curl -sf "http://127.0.0.1:$MONITOR/healthz?js-enabled-only=true" >/dev/null && break
   sleep 1

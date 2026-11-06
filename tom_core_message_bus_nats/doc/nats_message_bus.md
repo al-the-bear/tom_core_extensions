@@ -154,8 +154,9 @@ one a group of its own anyway (MB-C20) — the server's
 
 ## Settling and Dead Letters
 
-The handler runs inside `TomBusTrace.delivering`, and its delivery is settled
-by its outcome:
+Each delivery goes through `tomDispatch` from `tom_core_message_bus`: the
+payload is decoded, the handler runs inside `TomBusTrace.delivering`, and the
+delivery is settled by the outcome it answers:
 
 | Outcome | Sent to the server |
 | ------- | ------------------ |
@@ -170,10 +171,10 @@ The attempt is JetStream's delivered count, read from the reply subject
 hash before the stream); `deliveredCount` reads it. `maxDeliveries` is counted
 by the bus, not set on the consumer.
 
-A dead letter is the original message — same id, payload and headers — with
-the four dead-letter headers (`TomBusHeaders.deadLetterTopic`, `...Group`,
-`...Reason`, `...Attempts`), published to `tomDeadLetterTopic(topic)`,
-`<topic>.dlq`. That is a topic like any other, with its own stream; a group
+A dead letter is `tomDeadLetter(message, ...)`: the original message — same
+id, payload and headers — with the four dead-letter headers
+(`TomBusHeaders.deadLetterTopic`, `...Group`, `...Reason`, `...Attempts`),
+published to `tomDeadLetterTopic(topic)`, `<topic>.dlq`. That is a topic like any other, with its own stream; a group
 subscribed to it receives the dead letters.
 
 **A settlement the server did not confirm** — no reply within five seconds — is

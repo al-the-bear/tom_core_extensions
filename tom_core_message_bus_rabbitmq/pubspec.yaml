@@ -1,0 +1,33 @@
+name: tom_core_message_bus_rabbitmq
+description: >-
+  The RabbitMQ adapter of the Tom message bus: TomMessageBus over a RabbitMQ
+  broker, a fanout exchange per topic and a queue per consumer group, publishes
+  confirmed by the broker. Passes the bus's conformance suite.
+version: 0.1.0
+
+repository: https://github.com/al-the-bear/tom_core_extensions
+homepage: https://github.com/al-the-bear/tom_core_extensions/tree/main/tom_core_message_bus_rabbitmq
+
+environment:
+  sdk: ^3.10.0
+
+dependencies:
+  # The AMQP 0-9-1 client, from the fork that carries the publisher-confirm and
+  # error-stream fixes the unmaintained upstream (dart_amqp 0.3.1) lacks.
+  dart_amqp:
+    git:
+      url: https://github.com/al-the-bear/tom_dart_amqp
+      ref: tom/0.3.1-fixes
+  # The contract this package implements, the trace helpers and the codec.
+  tom_core_message_bus:
+    path: ../../core/tom_core_message_bus
+  # The exception base and the logging the adapter writes to.
+  tom_core_kernel:
+    path: ../../core/tom_core_kernel
+
+dev_dependencies:
+  lints: ^6.0.0
+  test: ^1.28.0
+  # The bus relay, for the relay-through-RabbitMQ integration test.
+  tom_core_server:
+    path: ../../core/tom_core_server

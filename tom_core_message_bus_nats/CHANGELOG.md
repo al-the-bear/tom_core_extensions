@@ -21,6 +21,8 @@ The first release: the NATS JetStream adapter of the Tom message bus, in
   read from the delivered count of the reply subject; the message id sent as
   `Nats-Msg-Id`, so the server drops a repeated publish within its duplicate
   window.
+- **The delivery step**: each delivery goes through `tom_core_message_bus`'s
+  `tomDispatch`, each dead letter is its `tomDeadLetter`.
 - **Message fields in headers**: `Tom-Bus-Id`, `Tom-Bus-Key` and
   `Tom-Bus-Published-At` (`idHeader`, `keyHeader`, `publishedAtHeader`); the
   payload is the message's JSON.
