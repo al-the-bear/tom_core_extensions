@@ -26,12 +26,18 @@ The first release: the Azure adapter of the Tom message bus, in
 - **The message**: one JSON envelope in a `data` section,
   `{id, key, publishedAt, headers, payload}` (`envelopeOf`, `messageOf`), with
   `message-id`, `content-type` and `creation-time` set.
-- **`TomServiceBusSasKey`**: SASL `PLAIN` credentials, and the shared access
-  signature (`signature`) every management request carries.
+- **Authentication**: `TomServiceBusCredential` — `TomServiceBusSasKey`
+  (SASL `PLAIN`, or with `claimsBased` a shared access signature put per entity
+  through claims-based security; `signature` for the management API) and
+  `TomServiceBusTokenCredential` (a Microsoft Entra ID token from the
+  application's function, put per entity through claims-based security and
+  renewed at three quarters of its `lifetime`; a bearer token on the
+  management API). `fromConnectionString` takes `claimsBased`.
 - **The AMQP 1.0 client** (`AmqpConnection`): the type codec (`AmqpWriter`,
   `AmqpReader`, `amqpEncode`, `amqpDecode` and the AMQP types), the message
   format (`AmqpMessage`, the outcomes), framing, SASL `PLAIN` and `ANONYMOUS`,
-  one session per connection, sending and receiving links
+  one session per connection, the claims-based security exchange
+  (`putToken` on `$cbs`), sending and receiving links
   (`AmqpSender.send`, `AmqpReceiver.grant` and `deliveries`,
   `AmqpDelivery.settle`), heartbeats, and the links kept by the peer's
   handle as well as their own.
@@ -39,9 +45,11 @@ The first release: the Azure adapter of the Tom message bus, in
 - **Error keys**: `message_bus.azure.connection_string_invalid`,
   `message_bus.azure.management_failed`, `message_bus.azure.publish_failed`,
   `message_bus.azure.consumer_failed`.
-- **Tests**: the offline suites ZB-U1 to ZB-U10 (codec, message format,
-  signature, names) and ZB-U11, ZB-U12 (the connection against a scripted AMQP
-  peer); the bus's conformance suite MB-C1 to MB-C20, the relay test ZB-I1 and
-  the example against the Service Bus emulator, tagged `azure` and run by
-  `tool/run_azure_tests.sh` (21 passed, 1 skipped: MB-C18).
+- **Tests**: the offline suites ZB-U1 to ZB-U10, ZB-U14, ZB-U15 (codec,
+  message format, signature, names, management API) and ZB-U11 to ZB-U13 (the
+  connection and the claims-based exchange against a scripted AMQP peer); the
+  bus's conformance suite MB-C1 to MB-C20 in both authentication modes, the
+  relay test ZB-I1 and the example against the Service Bus emulator, tagged
+  `azure` and run by `tool/run_azure_tests.sh` (40 passed, 2 skipped: MB-C18
+  in each mode).
 - **Example**: `example/azure_message_bus_example.dart`.

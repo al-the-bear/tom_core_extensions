@@ -678,6 +678,91 @@ class AmqpConnection {
     _peerDetached.remove(link.handle);
   }
 
+  /// The links of the claims-based security node, attached on first use.
+  Future<(AmqpSender, AmqpReceiver)>? _cbs;
+  int _cbsRequests = 0;
+  final Map<String, Completer<AmqpMessage>> _cbsWaiting = {};
+
+  /// Puts [token] for [audience] on the peer's claims-based security node
+  /// (`$cbs`): the AMQP Claims-Based Security exchange, how a connection
+  /// opened with SASL `ANONYMOUS` is authorized for an entity. [type] names the
+  /// token's kind — `jwt` for a Microsoft Entra ID token,
+  /// `servicebus.windows.net:sastoken` for a shared access signature — and
+  /// [expiresAt] when it expires.
+  ///
+  /// Completes when the peer accepted the token (status 200 or 202); throws an
+  /// [AmqpException] with the peer's status and description otherwise.
+  Future<void> putToken({
+    required String audience,
+    required String token,
+    required String type,
+    DateTime? expiresAt,
+  }) async {
+    final (sender, _) = await (_cbs ??= _attachCbs());
+    final id = 'cbs-${_cbsRequests++}';
+    final answer = _cbsWaiting[id] = Completer<AmqpMessage>();
+    try {
+      await sender.send(
+        AmqpMessage(
+          value: token,
+          messageId: id,
+          replyTo: _cbsReplyAddress,
+          applicationProperties: {
+            'operation': 'put-token',
+            'type': type,
+            'name': audience,
+            'expiration': ?expiresAt,
+          },
+        ),
+      );
+      final reply = await answer.future.timeout(const Duration(seconds: 30));
+      final status = reply.applicationProperties['status-code'];
+      final code = status is int
+          ? status
+          : (status is AmqpUnsigned ? status.value : null);
+      if (code != 200 && code != 202) {
+        throw AmqpException(
+          'amqp:unauthorized-access',
+          'The token for $audience was refused: $status '
+              '${reply.applicationProperties['status-description'] ?? ''}',
+        );
+      }
+    } finally {
+      _cbsWaiting.remove(id);
+    }
+  }
+
+  String get _cbsReplyAddress => '$containerId-cbs-reply';
+
+  Future<(AmqpSender, AmqpReceiver)> _attachCbs() async {
+    try {
+      final sender = await attachSender(r'$cbs');
+      final receiver = await attachReceiver(r'$cbs', target: _cbsReplyAddress);
+      receiver.deliveries.listen(
+        (delivery) {
+          delivery.settle(const AmqpAccepted());
+          final id = delivery.message.correlationId;
+          final waiting = _cbsWaiting['$id'];
+          if (waiting != null && !waiting.isCompleted) {
+            waiting.complete(delivery.message);
+          }
+          receiver.grant(1);
+        },
+        onError: (Object error) {
+          _cbs = null;
+          for (final waiting in _cbsWaiting.values) {
+            if (!waiting.isCompleted) waiting.completeError(error);
+          }
+        },
+      );
+      receiver.grant(1);
+      return (sender, receiver);
+    } on Object {
+      _cbs = null;
+      rethrow;
+    }
+  }
+
   /// Ends the session and closes the connection.
   Future<void> close() async {
     if (_closing || _failure != null) return;

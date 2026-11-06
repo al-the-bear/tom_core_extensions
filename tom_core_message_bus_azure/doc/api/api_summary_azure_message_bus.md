@@ -17,6 +17,7 @@ For the mapping onto Service Bus, settling, the limits and the error keys, see
 - [The Bus](#the-bus)
   - [TomServiceBusMessageBus](#tomservicebusmessagebus)
   - [TomServiceBusSasKey](#tomservicebussaskey)
+  - [TomServiceBusTokenCredential](#tomservicebustokencredential)
 - [The AMQP Client](#the-amqp-client)
   - [AmqpConnection](#amqpconnection)
   - [AmqpSasl](#amqpsasl)
@@ -35,7 +36,7 @@ Source: `lib/src/service_bus.dart`, `lib/src/amqp/amqp_connection.dart`,
 
 | File | Declares |
 | ---- | -------- |
-| `service_bus.dart` | `TomServiceBusMessageBus`, `TomServiceBusSasKey` |
+| `service_bus.dart` | `TomServiceBusCredential`, `TomServiceBusSasKey`, `TomServiceBusTokenCredential`, `TomServiceBusMessageBus` |
 | `amqp/amqp_connection.dart` | `AmqpConnection`, `AmqpSasl`, `AmqpLink`, `AmqpSender`, `AmqpReceiver`, `AmqpDelivery`, `AmqpException`, `AmqpPerformative` |
 | `amqp/amqp_message.dart` | `AmqpMessage`, `AmqpOutcome`, `AmqpAccepted`, `AmqpReleased`, `AmqpModified`, `AmqpRejected`, `AmqpCodes` |
 | `amqp/amqp_types.dart` | `AmqpWriter`, `AmqpReader`, `amqpEncode`, `amqpDecode`, `AmqpSymbol`, `AmqpUnsigned` and its four widths, `AmqpUuid`, `AmqpArray`, `AmqpDescribed`, `AmqpCodecException` |
@@ -45,6 +46,10 @@ Source: `lib/src/service_bus.dart`, `lib/src/amqp/amqp_connection.dart`,
 ```text
 TomMessageBus  (tom_core_message_bus)
     └── TomServiceBusMessageBus  (implements)
+
+TomServiceBusCredential  (sealed)
+    ├── TomServiceBusSasKey
+    └── TomServiceBusTokenCredential
 
 AmqpLink  (sealed)
     ├── AmqpSender
@@ -79,7 +84,7 @@ subscriptions through the management API.
 ```dart
 TomServiceBusMessageBus({
   required String host,
-  required TomServiceBusSasKey credential,
+  required TomServiceBusCredential credential,
   int amqpPort = 5671,
   bool secure = true,
   Uri? managementEndpoint,
@@ -97,6 +102,7 @@ factory TomServiceBusMessageBus.fromConnectionString(
   int? amqpPort,
   int? managementPort,
   String namePrefix = 'tombus',
+  bool claimsBased = false,
 })
 ```
 
@@ -111,7 +117,7 @@ factory TomServiceBusMessageBus.fromConnectionString(
 | Property | Type | Description |
 | -------- | ---- | ----------- |
 | `host` | `String` | The namespace's host name. |
-| `credential` | `TomServiceBusSasKey` | The shared access key. |
+| `credential` | `TomServiceBusCredential` | How the bus authenticates. |
 | `amqpPort` | `int` | The AMQP port. |
 | `secure` | `bool` | Whether AMQP runs over TLS. |
 | `managementEndpoint` | `Uri` | The management API's base address. |
@@ -143,17 +149,36 @@ factory TomServiceBusMessageBus.fromConnectionString(
 
 ### TomServiceBusSasKey
 
-A shared access key of a namespace's policy.
+A shared access key of a namespace's policy (a `TomServiceBusCredential`).
 
 ```dart
-const TomServiceBusSasKey(String keyName, String key)
+const TomServiceBusSasKey(String keyName, String key, {bool claimsBased = false})
 ```
 
 | Member | Signature | Description |
 | ------ | --------- | ----------- |
 | `keyName` | `String` | The policy's name. |
 | `key` | `String` | The policy's key. |
+| `claimsBased` | `bool` | Whether the AMQP connection is authorized through claims-based security (a signature put per entity on `$cbs`) instead of SASL `PLAIN`. |
 | `signature` | `String signature(Uri resource, {Duration validFor = const Duration(hours: 1), DateTime? now})` | `SharedAccessSignature sr=...&sig=...&se=...&skn=...` for the resource. |
+
+### TomServiceBusTokenCredential
+
+A Microsoft Entra ID credential (a `TomServiceBusCredential`): tokens put per
+entity on the connection's `$cbs` node (type `jwt`) and renewed at three
+quarters of `lifetime`; a bearer token on the management API.
+
+```dart
+const TomServiceBusTokenCredential(
+  Future<String> Function() token, {
+  Duration lifetime = const Duration(hours: 1),
+})
+```
+
+| Member | Type | Description |
+| ------ | ---- | ----------- |
+| `token` | `Future<String> Function()` | Answers a current access token for Service Bus (scope `https://servicebus.azure.net/.default`). |
+| `lifetime` | `Duration` | How long one token is valid. |
 
 ## The AMQP Client
 
@@ -166,6 +191,7 @@ An open AMQP 1.0 connection with one session.
 | `connect` | `static Future<AmqpConnection> connect(String host, int port, {required AmqpSasl sasl, bool secure = false, String? hostname, String? containerId, Duration timeout = const Duration(seconds: 30)})` | Opens the socket (TLS when `secure`), authenticates, exchanges `open` and begins the session. |
 | `attachSender` | `Future<AmqpSender> attachSender(String address, {String? name, Map<AmqpSymbol, Object?>? properties})` | A link sending to `address`. |
 | `attachReceiver` | `Future<AmqpReceiver> attachReceiver(String address, {String? name, String? target, Map<AmqpSymbol, Object?>? filter, Map<AmqpSymbol, Object?>? properties})` | A link receiving from `address`. |
+| `putToken` | `Future<void> putToken({required String audience, required String token, required String type, DateTime? expiresAt})` | The claims-based security exchange: puts the token for `audience` on `$cbs` (`jwt`, or `servicebus.windows.net:sastoken`); throws an `AmqpException` unless the peer answers 200 or 202. |
 | `close` | `Future<void> close()` | Ends the session and closes the connection. |
 | `done` | `Future<void>` | Completes when the connection ended, with the failure that ended it as an error. |
 | `isOpen` | `bool` | Whether the connection is open. |

@@ -6,6 +6,8 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:crypto/crypto.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
 import 'package:test/test.dart';
 import 'package:tom_core_message_bus_azure/tom_core_message_bus_azure.dart';
 
@@ -234,6 +236,68 @@ void main() {
       expect(
         TomServiceBusMessageBus.isoDuration(const Duration(seconds: 30)),
         'PT30S',
+      );
+    });
+  });
+
+  group('the management API', () {
+    test('ZB-U14: a request carries a shared access signature for its '
+        'resource, or an Entra ID bearer token', () async {
+      final seen = <http.Request>[];
+      final client = MockClient((request) async {
+        seen.add(request);
+        return http.Response('', 201);
+      });
+      final sas = TomServiceBusMessageBus(
+        host: 'ns.servicebus.windows.net',
+        credential: const TomServiceBusSasKey('Root', 'k'),
+        httpClient: client,
+      );
+      expect(await sas.management('PUT', 'topic', body: '<entry/>'), 201);
+      final signed = seen.single;
+      expect(
+        signed.url.toString(),
+        'https://ns.servicebus.windows.net/topic?api-version=2021-05',
+      );
+      expect(
+        signed.headers['authorization'],
+        startsWith(
+          'SharedAccessSignature '
+          'sr=https%3A%2F%2Fns.servicebus.windows.net%2Ftopic&sig=',
+        ),
+      );
+      expect(
+        signed.headers['content-type'],
+        startsWith('application/atom+xml'),
+      );
+
+      seen.clear();
+      final entra = TomServiceBusMessageBus(
+        host: 'ns.servicebus.windows.net',
+        credential: TomServiceBusTokenCredential(() async => 'entra-token'),
+        httpClient: client,
+      );
+      await entra.management('DELETE', 'topic/subscriptions/g');
+      expect(seen.single.headers['authorization'], 'Bearer entra-token');
+    });
+
+    test('ZB-U15: a refusal other than an accepted status is a '
+        'management failure', () async {
+      final bus = TomServiceBusMessageBus(
+        host: 'ns.servicebus.windows.net',
+        credential: const TomServiceBusSasKey('Root', 'k'),
+        httpClient: MockClient((_) async => http.Response('<Error/>', 409)),
+      );
+      expect(await bus.management('PUT', 'topic', accept: const {409}), 409);
+      await expectLater(
+        bus.management('PUT', 'topic'),
+        throwsA(
+          isA<Exception>().having(
+            (e) => '$e',
+            'message',
+            contains('message_bus.azure.management_failed'),
+          ),
+        ),
       );
     });
   });

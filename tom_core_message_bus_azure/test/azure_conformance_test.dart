@@ -18,9 +18,10 @@ import 'package:tom_core_server/tom_core_server.dart';
 
 final String? _connection = Platform.environment['TOM_AZURE_SB_CONNECTION'];
 
-TomServiceBusMessageBus emulatorBus() =>
+TomServiceBusMessageBus emulatorBus({bool claimsBased = false}) =>
     TomServiceBusMessageBus.fromConnectionString(
       _connection!,
+      claimsBased: claimsBased,
       amqpPort: int.tryParse(
         Platform.environment['TOM_AZURE_SB_AMQP_PORT'] ?? '',
       ),
@@ -37,6 +38,15 @@ void main() {
   group('TomServiceBusMessageBus conformance', () {
     tomMessageBusConformance(
       create: () async => emulatorBus(),
+      timeout: const Duration(seconds: 30),
+      quiet: const Duration(seconds: 2),
+    );
+  }, skip: skip);
+
+  group('TomServiceBusMessageBus conformance, authorized through claims-based '
+      'security', () {
+    tomMessageBusConformance(
+      create: () async => emulatorBus(claimsBased: true),
       timeout: const Duration(seconds: 30),
       quiet: const Duration(seconds: 2),
     );

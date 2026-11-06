@@ -14,12 +14,27 @@ import 'package:tom_core_message_bus/tom_core_message_bus.dart';
 import 'amqp/amqp_connection.dart';
 import 'amqp/amqp_message.dart';
 
-/// How a [TomServiceBusMessageBus] authenticates: a shared access key, used
-/// for SASL `PLAIN` on the AMQP connection and for shared access signatures on
-/// the management API.
-class TomServiceBusSasKey {
-  /// The key [key] of the shared access policy [keyName].
-  const TomServiceBusSasKey(this.keyName, this.key);
+/// How a [TomServiceBusMessageBus] authenticates: a shared access key
+/// ([TomServiceBusSasKey]) or a Microsoft Entra ID token
+/// ([TomServiceBusTokenCredential]).
+sealed class TomServiceBusCredential {
+  const TomServiceBusCredential();
+}
+
+/// A shared access key: SASL `PLAIN` on the AMQP connection — or, with
+/// [claimsBased], shared access signatures put on the connection's
+/// claims-based security node — and shared access signatures on the
+/// management API.
+class TomServiceBusSasKey extends TomServiceBusCredential {
+  /// The key [key] of the shared access policy [keyName]; with [claimsBased]
+  /// the AMQP connection authenticates with a signature per entity rather
+  /// than with the key itself.
+  const TomServiceBusSasKey(this.keyName, this.key, {this.claimsBased = false});
+
+  /// Whether the AMQP connection is authorized through claims-based security
+  /// (SASL `ANONYMOUS`, then a signature put per entity) instead of SASL
+  /// `PLAIN`.
+  final bool claimsBased;
 
   /// The policy's name, e.g. `RootManageSharedAccessKey`.
   final String keyName;
@@ -46,6 +61,28 @@ class TomServiceBusSasKey {
         '&sig=${Uri.encodeQueryComponent(base64.encode(mac.bytes))}'
         '&se=$expiry&skn=$keyName';
   }
+}
+
+/// A Microsoft Entra ID token credential: [token] answers an access token for
+/// Service Bus (scope `https://servicebus.azure.net/.default`), put on the
+/// AMQP connection's claims-based security node for every entity and sent as
+/// a bearer token to the management API.
+///
+/// Obtaining the token — a service principal, a managed identity — is the
+/// application's: the bus asks [token] whenever it needs one, and again before
+/// [lifetime] has passed, since Service Bus stops a link whose token expired.
+class TomServiceBusTokenCredential extends TomServiceBusCredential {
+  /// A credential whose tokens [token] answers, each valid for [lifetime].
+  const TomServiceBusTokenCredential(
+    this.token, {
+    this.lifetime = const Duration(hours: 1),
+  });
+
+  /// Answers a current access token.
+  final Future<String> Function() token;
+
+  /// How long one token is valid.
+  final Duration lifetime;
 }
 
 /// A [TomMessageBus] over Azure Service Bus: messages over AMQP 1.0 — through
@@ -81,7 +118,8 @@ class TomServiceBusSasKey {
 /// messages do.
 class TomServiceBusMessageBus implements TomMessageBus {
   /// A bus on the namespace at [host] (`<namespace>.servicebus.windows.net`),
-  /// authenticating with [credential].
+  /// authenticating with [credential]: a shared access key, or a Microsoft
+  /// Entra ID token credential.
   ///
   /// The AMQP connection goes to [amqpPort] (5671, over TLS when [secure]);
   /// the management API to [managementEndpoint] (`https://<host>/` by
@@ -117,12 +155,14 @@ class TomServiceBusMessageBus implements TomMessageBus {
   /// With `UseDevelopmentEmulator=true` it addresses the emulator: AMQP
   /// without TLS on [amqpPort] (5672 by default) and the management API over
   /// HTTP on [managementPort] (5300 by default) — the ports a test maps the
-  /// emulator's to.
+  /// emulator's to. With [claimsBased] the AMQP connection is authorized
+  /// through claims-based security — see [TomServiceBusSasKey.claimsBased].
   factory TomServiceBusMessageBus.fromConnectionString(
     String connectionString, {
     int? amqpPort,
     int? managementPort,
     String namePrefix = 'tombus',
+    bool claimsBased = false,
   }) {
     final parts = <String, String>{};
     for (final part in connectionString.split(';')) {
@@ -147,7 +187,7 @@ class TomServiceBusMessageBus implements TomMessageBus {
     final emulator = parts['usedevelopmentemulator']?.toLowerCase() == 'true';
     return TomServiceBusMessageBus(
       host: host,
-      credential: TomServiceBusSasKey(keyName, key),
+      credential: TomServiceBusSasKey(keyName, key, claimsBased: claimsBased),
       amqpPort: amqpPort ?? (emulator ? 5672 : 5671),
       secure: !emulator,
       managementEndpoint: emulator
@@ -160,8 +200,8 @@ class TomServiceBusMessageBus implements TomMessageBus {
   /// The namespace's host name.
   final String host;
 
-  /// The shared access key the bus authenticates with.
-  final TomServiceBusSasKey credential;
+  /// How the bus authenticates.
+  final TomServiceBusCredential credential;
 
   /// The AMQP port.
   final int amqpPort;
@@ -277,10 +317,18 @@ class TomServiceBusMessageBus implements TomMessageBus {
   }) async {
     final uri = _managementUri(path);
     final request = http.Request(method, uri)
-      ..headers['authorization'] = credential.signature(
-        managementEndpoint.replace(path: '/$path', query: ''),
-        now: _clock(),
-      );
+      ..headers['authorization'] = switch (credential) {
+        TomServiceBusSasKey sas => sas.signature(
+          Uri(
+            scheme: managementEndpoint.scheme,
+            host: managementEndpoint.host,
+            port: managementEndpoint.hasPort ? managementEndpoint.port : null,
+            path: '/$path',
+          ),
+          now: _clock(),
+        ),
+        TomServiceBusTokenCredential entra => 'Bearer ${await entra.token()}',
+      };
     if (body != null) {
       request.headers['content-type'] =
           'application/atom+xml;type=entry;charset=utf-8';
@@ -420,7 +468,11 @@ class TomServiceBusMessageBus implements TomMessageBus {
       amqpPort,
       secure: secure,
       hostname: host,
-      sasl: AmqpSasl.plain(credential.keyName, credential.key),
+      sasl: switch (credential) {
+        TomServiceBusSasKey(claimsBased: false, :final keyName, :final key) =>
+          AmqpSasl.plain(keyName, key),
+        _ => const AmqpSasl.anonymous(),
+      },
     );
     _connection = opening;
     opening.then(
@@ -433,6 +485,52 @@ class TomServiceBusMessageBus implements TomMessageBus {
       },
     );
     return opening;
+  }
+
+  final Map<(AmqpConnection, String), Timer> _renewals = {};
+
+  /// Authorizes [connection] for [entity] when the credential works through
+  /// claims-based security: puts a token for `sb://<host>/<entity>` on the
+  /// connection's `$cbs` node, and again before it expires, for as long as
+  /// the connection is open.
+  Future<void> _authorize(AmqpConnection connection, String entity) async {
+    final Duration lifetime;
+    final String type;
+    final String token;
+    final audience = 'sb://$host/$entity';
+    switch (credential) {
+      case TomServiceBusSasKey(claimsBased: false):
+        return;
+      case final TomServiceBusSasKey sas:
+        lifetime = const Duration(hours: 1);
+        type = 'servicebus.windows.net:sastoken';
+        token = sas.signature(
+          Uri.parse(audience),
+          validFor: lifetime,
+          now: _clock(),
+        );
+      case final TomServiceBusTokenCredential entra:
+        lifetime = entra.lifetime;
+        type = 'jwt';
+        token = await entra.token();
+    }
+    await connection.putToken(
+      audience: audience,
+      token: token,
+      type: type,
+      expiresAt: _clock().add(lifetime),
+    );
+    final key = (connection, entity);
+    _renewals[key]?.cancel();
+    _renewals[key] = Timer(lifetime * 3 ~/ 4, () async {
+      _renewals.remove(key);
+      if (_closed || !connection.isOpen) return;
+      try {
+        await _authorize(connection, entity);
+      } on Object catch (error) {
+        tomLog.warn('Renewing the token for $entity failed: $error');
+      }
+    });
   }
 
   Future<AmqpSender> _sender(String topic) async {
@@ -449,7 +547,9 @@ class TomServiceBusMessageBus implements TomMessageBus {
     final attaching = () async {
       await _topic(topic);
       final connection = await _amqp();
-      return connection.attachSender(topicNameOf(namePrefix, topic));
+      final entity = topicNameOf(namePrefix, topic);
+      await _authorize(connection, entity);
+      return connection.attachSender(entity);
     }();
     _senders[topic] = attaching;
     try {
@@ -632,6 +732,10 @@ class TomServiceBusMessageBus implements TomMessageBus {
   Future<void> _shutDown() async {
     _closed = true;
     await Future.wait([for (final c in List.of(_consumers)) c.cancel()]);
+    for (final timer in _renewals.values) {
+      timer.cancel();
+    }
+    _renewals.clear();
     final connection = _connection;
     _connection = null;
     if (connection != null) {
@@ -687,6 +791,7 @@ class _ServiceBusConsumer implements TomBusSubscription {
 
   Future<AmqpReceiver> _attach() async {
     final connection = await _bus._amqp();
+    await _bus._authorize(connection, _address);
     final receiver = await connection.attachReceiver(_address);
     _receiver = receiver;
     return receiver;

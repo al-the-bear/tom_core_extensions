@@ -12,6 +12,8 @@ limits, the error keys and running the suite.
 - [Constructing the Bus](#constructing-the-bus)
   - [From a connection string](#from-a-connection-string)
   - [The emulator](#the-emulator)
+- [Authentication](#authentication)
+  - [Claims-based security](#claims-based-security)
 - [The AMQP Client](#the-amqp-client)
   - [What it implements](#what-it-implements)
   - [Handles are each side's own](#handles-are-each-sides-own)
@@ -43,7 +45,7 @@ final bus = TomServiceBusMessageBus(
 | Parameter | Default | Meaning |
 | --------- | ------- | ------- |
 | `host` | — | The namespace's host name |
-| `credential` | — | The shared access key: SASL `PLAIN` on the AMQP connection, shared access signatures on the management API |
+| `credential` | — | A `TomServiceBusSasKey` or a `TomServiceBusTokenCredential` — see [Authentication](#authentication) |
 | `amqpPort` | `5671` | The AMQP port |
 | `secure` | `true` | AMQP over TLS |
 | `managementEndpoint` | `https://<host>/` | The management API's base address |
@@ -73,6 +75,34 @@ refuses message operations — which is why the bus speaks AMQP rather than
 Service Bus's REST API. `tool/emulator/docker-compose.yaml` runs it with the
 SQL Edge database it keeps its state in.
 
+## Authentication
+
+| Credential | The AMQP connection | The management API |
+| ---------- | ------------------- | ------------------ |
+| `TomServiceBusSasKey(keyName, key)` | SASL `PLAIN` with the key name and the key | A shared access signature for the request's resource |
+| `TomServiceBusSasKey(keyName, key, claimsBased: true)` | SASL `ANONYMOUS`, then a shared access signature per entity on `$cbs` (`servicebus.windows.net:sastoken`) | A shared access signature |
+| `TomServiceBusTokenCredential(token, lifetime:)` | SASL `ANONYMOUS`, then the Microsoft Entra ID token per entity on `$cbs` (`jwt`) | `Authorization: Bearer <token>` |
+
+A shared access signature (`TomServiceBusSasKey.signature`) is an HMAC-SHA256
+over the URL-encoded resource and the expiry, valid for an hour. A
+`TomServiceBusTokenCredential` takes the application's function answering an
+access token for Service Bus (scope `https://servicebus.azure.net/.default`);
+how the token is obtained — a service principal, a managed identity — is the
+application's.
+
+### Claims-based security
+
+With a claims-based credential the connection authenticates anonymously and is
+then authorized entity by entity: before a sender or receiver attaches, the bus
+puts a token for `sb://<host>/<entity>` on the connection's `$cbs` node
+(`AmqpConnection.putToken`: a request message with `operation` `put-token`, the
+token's `type` and `name` and its `expiration`, answered on a reply link with a
+`status-code`, 200 or 202 when accepted). Service Bus stops a link whose token
+expired, so the bus puts a fresh token when three quarters of its lifetime
+have passed, for as long as the connection is open. A refused token fails the
+attach as `message_bus.azure.consumer_failed` or the send as
+`message_bus.azure.publish_failed`.
+
 ## The AMQP Client
 
 ### What it implements
@@ -82,7 +112,7 @@ SQL Edge database it keeps its state in.
 | Part | What there is |
 | ---- | ------------- |
 | Types | Every primitive type, lists, maps, arrays and described types (`AmqpWriter`, `AmqpReader`, `amqpEncode`, `amqpDecode`); unsigned integers and symbols as `AmqpUbyte`, `AmqpUshort`, `AmqpUint`, `AmqpUlong`, `AmqpSymbol` |
-| Security | SASL `PLAIN` and `ANONYMOUS` (`AmqpSasl`), over TLS when `secure` |
+| Security | SASL `PLAIN` and `ANONYMOUS` (`AmqpSasl`), over TLS when `secure`; the claims-based security exchange (`putToken`) |
 | Connection | `open` and `close`, frames split to the peer's maximum frame size, an empty frame every half of the peer's idle timeout |
 | Session | One session per connection, `begin` and `end` |
 | Sending | `attachSender`: messages sent unsettled; `AmqpSender.send` completes with the peer's outcome and fails with an `AmqpException` on `rejected` or a detach |
@@ -108,9 +138,8 @@ Topics and subscriptions are created with `PUT` on the management API
 (`api-version=2021-05`), with an Atom entry carrying a `TopicDescription` or
 `SubscriptionDescription`; an entity that exists already (`409`) is taken as
 it is. An ephemeral group's subscription is removed with `DELETE`. Every request
-carries a shared access signature for its resource
-(`TomServiceBusSasKey.signature`: an HMAC-SHA256 over the URL-encoded resource
-and the expiry, valid for an hour).
+carries a shared access signature for its resource, or the bearer token of an
+Entra ID credential (see [Authentication](#authentication)).
 
 ## The Mapping onto Service Bus
 
@@ -228,9 +257,8 @@ encoding).
 
 ## Not Yet Implemented
 
-- **Microsoft Entra ID.** The bus authenticates with a shared access key.
-  Tokens need the claims-based security exchange (`put-token` on the `$cbs`
-  node), which the client does not implement.
+- **Acquiring Entra ID tokens.** The bus puts the tokens a
+  `TomServiceBusTokenCredential` answers; obtaining them is the application's.
 - **Sessions.** Without them there is no ordering per key.
 - **More than one session per connection, transactions, link recovery.** The
   client implements what the bus needs.
@@ -239,14 +267,15 @@ encoding).
 
 | Suite | What it covers |
 | ----- | -------------- |
-| `test/amqp_codec_test.dart` | ZB-U1 to ZB-U10, offline: every primitive type, the compact encodings, nested and large lists and maps, arrays, malformed bytes; the message sections and the outcomes; the shared access signature; subscription and topic names; connection strings |
-| `test/amqp_connection_test.dart` | ZB-U11 and ZB-U12, against a scripted AMQP peer in the same process: SASL `PLAIN`, `open` and `begin`, a send accepted by the peer; a link attached after another was detached, receiving its credit and its deliveries under the peer's handle |
-| `test/azure_conformance_test.dart` | Tagged `azure`: the bus's conformance suite MB-C1 to MB-C20, and ZB-I1, the bus relay publishing through Service Bus |
+| `test/amqp_codec_test.dart` | ZB-U1 to ZB-U10 and ZB-U14, ZB-U15, offline: every primitive type, the compact encodings, nested and large lists and maps, arrays, malformed bytes; the message sections and the outcomes; the shared access signature; subscription and topic names; connection strings; and ZB-U14, ZB-U15: the management API's shared access signature and Entra ID bearer token, and its refusals |
+| `test/amqp_connection_test.dart` | ZB-U11 to ZB-U13, against a scripted AMQP peer in the same process: SASL `PLAIN`, `open` and `begin`, a send accepted by the peer; a link attached after another was detached, receiving its credit and its deliveries under the peer's handle; ZB-U13, a token put on `$cbs`, accepted and refused |
+| `test/azure_conformance_test.dart` | Tagged `azure`: the bus's conformance suite MB-C1 to MB-C20 twice — authenticated with SASL `PLAIN`, and authorized through claims-based security — and ZB-I1, the bus relay publishing through Service Bus |
 | `test/example_test.dart` | Tagged `azure`: the example runs green |
 
 `tool/run_azure_tests.sh` starts the emulator and its database in Docker,
 waits until the emulator reports itself up, runs the `azure` tests and fails
-when every one of them skipped. 21 tests pass and 1 is skipped, MB-C18.
+when every one of them skipped. 40 tests pass and 2 are skipped, MB-C18 in
+each authentication mode.
 
 ```bash
 tool/run_azure_tests.sh

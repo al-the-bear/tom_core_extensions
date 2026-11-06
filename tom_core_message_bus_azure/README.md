@@ -33,9 +33,12 @@ The package's `AmqpConnection` is the part of AMQP 1.0 a message bus needs:
 the type system, framing, SASL `PLAIN` and `ANONYMOUS`, one session per
 connection, sending links that send unsettled and complete on the peer's
 outcome, receiving links granted credit one message at a time and settled with
-an outcome, and heartbeats against the peer's idle timeout. The bus
-authenticates with a shared access key: SASL `PLAIN` on the AMQP connection,
-shared access signatures on the management API.
+an outcome, the claims-based security exchange (`putToken` on `$cbs`), and
+heartbeats against the peer's idle timeout. The bus authenticates with a shared
+access key — SASL `PLAIN`, or a shared access signature per entity through
+claims-based security — or with a Microsoft Entra ID token put through
+claims-based security; the management API takes the matching signature or
+bearer token.
 
 The contract is **at least once**, as for every bus: a message is delivered
 until a consumer of its group acknowledges it or it is dead-lettered, under the
@@ -56,7 +59,9 @@ or above (Basic has no topics), or the Service Bus emulator.
 
 | Feature | What it does |
 | ------- | ------------ |
-| `TomServiceBusMessageBus(host:, credential:, ...)` | A bus on a namespace, authenticating with a shared access key; AMQP over TLS on 5671 and the management API at `https://<host>/` by default. |
+| `TomServiceBusMessageBus(host:, credential:, ...)` | A bus on a namespace; AMQP over TLS on 5671 and the management API at `https://<host>/` by default. |
+| `TomServiceBusSasKey` | A shared access key: SASL `PLAIN`, or with `claimsBased` a signature put per entity on `$cbs`; shared access signatures on the management API. |
+| `TomServiceBusTokenCredential` | A Microsoft Entra ID credential: the application's function answering an access token, put per entity on `$cbs` and renewed before it expires; a bearer token on the management API. |
 | `TomServiceBusMessageBus.fromConnectionString` | A bus from a Service Bus connection string; one with `UseDevelopmentEmulator=true` addresses the emulator (AMQP on 5672 without TLS, the management API over HTTP on 5300). |
 | A topic per topic | `<namePrefix>-<topic>-<hash>`, created through the management API on first use; one that exists already is taken as it is. |
 | A subscription per group | `<group>-<hash>`, at most 50 characters, with the bus's `lockDuration` and `maxDeliveryCount`. |
@@ -121,9 +126,11 @@ dart run example/azure_message_bus_example.dart
 - **A handler longer than the lock sees its message again.** A received
   message is locked to its consumer for `lockDuration` (30 seconds); a handler
   that runs longer has it delivered again.
-- **Shared access keys only.** The bus authenticates with a shared access key
-  (SASL `PLAIN`); Microsoft Entra ID tokens, which need the claims-based
-  security exchange, are not implemented.
+- **Entra ID tokens are the application's to obtain.** The bus asks a
+  `TomServiceBusTokenCredential` for a token and puts it; acquiring it — a
+  service principal, a managed identity — is outside the package. The emulator
+  checks no token, so the Entra ID path is measured with a scripted peer and the
+  claims-based path with shared access signatures.
 - **One connection, one session.** All senders and receivers of a bus share
   one AMQP connection; a connection that fails is opened again for the next
   send, and each consumer attaches again after `retryDelay`.
@@ -151,10 +158,12 @@ dart run example/azure_message_bus_example.dart
 ## Status
 
 Version **0.1.0**. `dart test` runs the offline suites — the codec, the message
-format, the shared access signature and the names (`test/amqp_codec_test.dart`,
-ZB-U1 to ZB-U10), and the connection against a scripted AMQP peer in the same
-process (`test/amqp_connection_test.dart`, ZB-U11 and ZB-U12); the tests tagged
-`azure` — the bus's conformance suite, the relay test and the example — skip
-themselves without a connection string. `tool/run_azure_tests.sh` starts the
-emulator in Docker, runs them and fails when every one of them skipped: 21
-pass and 1 is skipped, MB-C18, the ordering test.
+format, the shared access signature, the names and the management API
+(`test/amqp_codec_test.dart`, ZB-U1 to ZB-U10, ZB-U14, ZB-U15), and the
+connection and the claims-based exchange against a scripted AMQP peer in the
+same process (`test/amqp_connection_test.dart`, ZB-U11 to ZB-U13); the tests
+tagged `azure` — the bus's conformance suite, authenticated with SASL `PLAIN`
+and authorized through claims-based security, the relay test and the example —
+skip themselves without a connection string. `tool/run_azure_tests.sh` starts
+the emulator in Docker, runs them and fails when every one of them skipped: 40
+pass and 2 are skipped, MB-C18, the ordering test, in each mode.

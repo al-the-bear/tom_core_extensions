@@ -12,7 +12,7 @@ members are listed; `_`-prefixed declarations are omitted.
 
 | Module | Summary | What it provides |
 | ------ | ------- | ---------------- |
-| Azure Message Bus | [api_summary_azure_message_bus.md](api_summary_azure_message_bus.md) | `TomServiceBusMessageBus` and `TomServiceBusSasKey`; the AMQP 1.0 client: `AmqpConnection`, its links and deliveries, `AmqpMessage`, the outcomes and the type codec. |
+| Azure Message Bus | [api_summary_azure_message_bus.md](api_summary_azure_message_bus.md) | `TomServiceBusMessageBus` and its credentials; the AMQP 1.0 client: `AmqpConnection`, its links and deliveries, `AmqpMessage`, the outcomes and the type codec. |
 
 ## Modules
 
@@ -21,7 +21,9 @@ members are listed; `_`-prefixed declarations are omitted.
 | Type | Kind | Description |
 | ---- | ---- | ----------- |
 | `TomServiceBusMessageBus` | class | A `TomMessageBus` over Azure Service Bus through AMQP 1.0: a topic per topic, a subscription per group. |
-| `TomServiceBusSasKey` | class | A shared access key: SASL `PLAIN` credentials, and the shared access signatures of the management API. |
+| `TomServiceBusCredential` | sealed class | How a bus authenticates. |
+| `TomServiceBusSasKey` | class | A shared access key: SASL `PLAIN` credentials or claims-based signatures, and the shared access signatures of the management API. |
+| `TomServiceBusTokenCredential` | class | A Microsoft Entra ID credential, put through claims-based security, a bearer token on the management API. |
 | `AmqpConnection` | class | An AMQP 1.0 connection with one session. |
 | `AmqpSasl` | sealed class | How a connection authenticates: `PLAIN` or `ANONYMOUS`. |
 | `AmqpLink` / `AmqpSender` / `AmqpReceiver` | sealed class / final classes | A link attached on a connection; a sending and a receiving link. |
@@ -67,8 +69,10 @@ members are listed; `_`-prefixed declarations are omitted.
 | `AmqpUshort` | Azure Message Bus |
 | `AmqpUuid` | Azure Message Bus |
 | `AmqpWriter` | Azure Message Bus |
+| `TomServiceBusCredential` | Azure Message Bus |
 | `TomServiceBusMessageBus` | Azure Message Bus |
 | `TomServiceBusSasKey` | Azure Message Bus |
+| `TomServiceBusTokenCredential` | Azure Message Bus |
 
 The contract's own types — `TomMessageBus`, `TomBusMessage`, `TomBusDelivery`,
 `TomBusCodec`, `TomBusException` and the rest — are in

@@ -19,9 +19,16 @@ class _ScriptedPeer {
   final ServerSocket _server;
   Socket? _client;
   final List<AmqpDescribed> received = [];
+  final List<AmqpMessage> cbsRequests = [];
   final BytesBuilder _buffer = BytesBuilder();
   bool _header = true;
   final Map<int, int> peerHandleOf = {};
+
+  /// Each link's address at the peer, by the client's handle.
+  final Map<int, String> addressOf = {};
+
+  /// The status the peer answers a `put-token` with.
+  int cbsStatus = 200;
 
   /// The handle the peer gives its first link; later ones count up from it.
   int peerHandleBase = 7;
@@ -84,13 +91,13 @@ class _ScriptedPeer {
       if (reader.isAtEnd) continue;
       final body = reader.read()! as AmqpDescribed;
       received.add(body);
-      _answer(body);
+      _answer(body, Uint8List.sublistView(reader.bytes, reader.offset));
     }
     if (offset < bytes.length) _buffer.add(bytes.sublist(offset));
     bytes = Uint8List(0);
   }
 
-  void _answer(AmqpDescribed body) {
+  void _answer(AmqpDescribed body, Uint8List payload) {
     final fields = body.value! as List<Object?>;
     switch (body.code) {
       case 0x41: // sasl-init
@@ -113,6 +120,8 @@ class _ScriptedPeer {
         final theirs = peerHandleBase + peerHandleOf.length;
         peerHandleOf[ours] = theirs;
         final role = fields[2] == true;
+        final terminus = (role ? fields[5] : fields[6])! as AmqpDescribed;
+        addressOf[ours] = (terminus.value! as List)[0]! as String;
         _send(
           0,
           AmqpDescribed(const AmqpUlong(0x12), [
@@ -143,6 +152,7 @@ class _ScriptedPeer {
       case 0x13: // flow: a receiver's credit — send it one message
         final handle = fields.length > 4 ? fields[4] : null;
         if (handle is! AmqpUint) return;
+        if (addressOf[handle.value] == r'$cbs') return;
         _send(
           0,
           AmqpDescribed(const AmqpUlong(0x14), [
@@ -158,7 +168,33 @@ class _ScriptedPeer {
             deliveryCount: 2,
           ).encode(),
         );
-      case 0x14: // transfer: accept it
+      case 0x14: // transfer: accept it; a put-token is answered on $cbs
+        final ours = (fields[0]! as AmqpUint).value;
+        if (addressOf[ours] == r'$cbs') {
+          final request = AmqpMessage.decode(payload);
+          final reply = addressOf.entries
+              .firstWhere((e) => e.value == r'$cbs' && e.key != ours)
+              .key;
+          _send(
+            0,
+            AmqpDescribed(const AmqpUlong(0x14), [
+              AmqpUint(peerHandleOf[reply]!),
+              const AmqpUint(1),
+              Uint8List.fromList([2]),
+              const AmqpUint(0),
+              false,
+            ]),
+            AmqpMessage(
+              value: null,
+              correlationId: request.messageId,
+              applicationProperties: {
+                'status-code': cbsStatus,
+                'status-description': cbsStatus == 200 ? 'OK' : 'Unauthorized',
+              },
+            ).encode(),
+          );
+          cbsRequests.add(request);
+        }
         _send(
           0,
           AmqpDescribed(const AmqpUlong(0x15), [
@@ -250,6 +286,45 @@ void main() {
     expect(
       ((disposition.value! as List)[4]! as AmqpDescribed).code,
       AmqpCodes.accepted,
+    );
+  });
+
+  test('ZB-U13: a token put on \$cbs is answered by the peer, and a refused '
+      'one fails with its status', () async {
+    final connection = await connect();
+    addTearDown(connection.close);
+    await connection
+        .putToken(
+          audience: 'sb://ns/topic',
+          token: 'the-token',
+          type: 'jwt',
+          expiresAt: DateTime.utc(2026, 11, 7, 12),
+        )
+        .timeout(const Duration(seconds: 5));
+    final request = peer.cbsRequests.single;
+    expect(request.value, 'the-token');
+    expect(request.applicationProperties, {
+      'operation': 'put-token',
+      'type': 'jwt',
+      'name': 'sb://ns/topic',
+      'expiration': DateTime.utc(2026, 11, 7, 12),
+    });
+    expect(request.replyTo, isNotNull);
+
+    peer.cbsStatus = 401;
+    await expectLater(
+      connection.putToken(
+        audience: 'sb://ns/other',
+        token: 'stale',
+        type: 'jwt',
+      ),
+      throwsA(
+        isA<AmqpException>().having(
+          (e) => e.condition,
+          'condition',
+          'amqp:unauthorized-access',
+        ),
+      ),
     );
   });
 }
