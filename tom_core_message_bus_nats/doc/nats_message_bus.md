@@ -15,6 +15,7 @@ codecs, headers and trace — is in the message bus guide.
   - [Topics and subjects](#topics-and-subjects)
   - [The message on the wire](#the-message-on-the-wire)
 - [Consumer Groups](#consumer-groups)
+  - [Ephemeral groups](#ephemeral-groups)
 - [Settling and Dead Letters](#settling-and-dead-letters)
 - [Retention and the Duplicate Window](#retention-and-the-duplicate-window)
 - [Publishing from the Bus Relay](#publishing-from-the-bus-relay)
@@ -67,6 +68,7 @@ The server must run with JetStream enabled (`nats-server -js`).
 | -------- | --------- |
 | A topic | A stream of its own, `TOMBUS_<topic>_<hash>`, holding the subject `<subjectPrefix>.<topic>` |
 | A consumer group | A durable pull consumer of that stream, deliver policy `new`, explicit acknowledgement |
+| An ephemeral group | An unnamed pull consumer of that stream, deliver policy `new`, explicit acknowledgement, `inactive_threshold` `ephemeralInactivity` (30 s); one per group in a bus, deleted when the group's last subscription there cancels |
 | Consumers of a group | Pull loops on the same durable consumer, each fetching one message at a time |
 | Acknowledge | `+ACK` |
 | Reject, redelivered | `-NAK`: the server delivers it again at once |
@@ -128,6 +130,27 @@ again after `fetchWait`. A consumer that cannot be created is refused with
 `cancel` stops the loop. It waits for the fetch under way, at most `fetchWait`;
 a message that fetch brings back after the cancel is NAKed, so another consumer
 of the group receives it.
+
+### Ephemeral groups
+
+A group subscribed with `ephemeral: true` is an unnamed pull consumer of the
+topic's stream — deliver policy `new`, explicit acknowledgement — with
+`inactive_threshold` set to `TomNatsMessageBus.ephemeralInactivity`, 30
+seconds. The bus creates it on the group's first `subscribe` and shares it
+among the group's subscriptions in that bus instance; when the last of them
+cancels, the bus deletes the consumer, and what waited for it is gone with it
+(MB-C19). A later subscription creates a new consumer, which receives only what
+is published after it. A process that stops without cancelling leaves the
+consumer behind until the server removes it, `ephemeralInactivity` after its
+last pull. A consumer the bus cannot delete is logged as a warning; the server
+removes it after the threshold all the same.
+
+Each bus instance has a consumer of its own for an ephemeral group, so two
+processes subscribing with the same ephemeral group name each receive every
+message rather than sharing them. A fan-out to every running process gives each
+one a group of its own anyway (MB-C20) — the server's
+`TomBusInvalidationChannel` subscribes with `tom-cache-invalidation-<node id>`
+(NB-V1).
 
 ## Settling and Dead Letters
 
@@ -201,7 +224,7 @@ Every refusal is a `TomBusException`, with its key and parameters.
 | `message_bus.nats.invalid_topic` | A topic that is not a NATS subject, on `publish` or `subscribe` | `topic` |
 | `message_bus.nats.stream_failed` | The topic's stream could not be created | `topic`, `stream` |
 | `message_bus.nats.publish_failed` | The server did not store a publish | `topic`, `message` |
-| `message_bus.nats.consumer_failed` | The group's durable consumer could not be created | `topic`, `group` |
+| `message_bus.nats.consumer_failed` | The group's consumer, durable or ephemeral, could not be created | `topic`, `group` |
 
 The bus's own keys — `message_bus.closed`, `message_bus.subscribe.invalid`,
 `message_bus.delivery.already_settled`, `message_bus.payload.not_json`,
@@ -227,8 +250,9 @@ The bus's own keys — `message_bus.closed`, `message_bus.subscribe.invalid`,
 | Suite | Settles |
 | ----- | ------- |
 | `test/nats_bus_test.dart` | Offline. NB-U1 streams and consumers named after their topic and group, kept apart by the hash and cut when long; NB-U2 the attempt read from both reply-subject forms; NB-U3 a topic that is no NATS subject refused with `message_bus.nats.invalid_topic`; NB-U4 an unreachable server refused at `connect` with `message_bus.nats.unreachable`. |
-| `test/nats_conformance_test.dart` | Tagged `nats`. The bus's conformance suite, MB-C1 to MB-C18, against a NATS server (MB-C18 skipped: no ordering per key is declared); NB-I1 a message queued on `TomBusRelay` reaching a NATS consumer once, under its id and key; NB-I2 a repeated publish of one id dropped by the server. Skips itself unless `TOM_NATS_TEST_URL` names a server. |
+| `test/nats_conformance_test.dart` | Tagged `nats`. The bus's conformance suite, MB-C1 to MB-C20, against a NATS server (MB-C18 skipped: no ordering per key is declared); NB-I1 a message queued on `TomBusRelay` reaching a NATS consumer once, under its id and key; NB-I2 a repeated publish of one id dropped by the server. Skips itself unless `TOM_NATS_TEST_URL` names a server. |
 | `test/nats_refusals_test.dart` | Tagged `nats`. NB-E1 a closed bus refusing to publish (`message_bus.closed`); NB-E2 a topic whose subject another stream holds (`message_bus.nats.stream_failed`); NB-E3 a group whose durable consumer exists with another configuration (`message_bus.nats.consumer_failed`); NB-E4 a publish over a lost connection (`message_bus.nats.publish_failed`). |
+| `test/nats_invalidation_test.dart` | Tagged `nats`. NB-V1 the server's `TomBusInvalidationChannel` between two isolates, each a node with caches of its own and a `TomMemoryInvalidationLog`, sharing only the NATS server: a grant revoked on one node is refused on the other within the channel's `stalenessBound`. Skips itself unless `TOM_NATS_TEST_URL` names a server. |
 | `test/example_test.dart` | Tagged `nats`. The example runs to the end against the server. |
 
 ```bash
@@ -241,4 +265,4 @@ dart test                    # the unit suite; the nats tests skip
 image), waits for its health endpoint, runs `dart test --tags nats` with
 `TOM_NATS_TEST_URL` pointing at it, and removes the container. A run in which
 every test skipped is reported as a failure, because it means the server never
-answered. It needs Docker. The suite's result: 24 passed, 1 skipped.
+answered. It needs Docker. The suite's result: 27 passed, 1 skipped.

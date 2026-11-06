@@ -52,6 +52,7 @@ Dart SDK `^3.10.0`. The server must run with JetStream enabled
 | `TomNatsMessageBus(client, ...)` | A bus over a `dart_nats` `Client` connected by the caller — with whatever TLS and credentials that connection carries. |
 | A stream per topic | `TOMBUS_<topic>_<hash>`, holding the subject `<subjectPrefix>.<topic>`, created on first use with the bus's `retention` as its maximum age. |
 | A durable consumer per group | A pull consumer with the deliver policy `new` and explicit acknowledgement, shared by every consumer of the group. |
+| An unnamed consumer per ephemeral group | A pull consumer without a durable name and with `inactive_threshold` `ephemeralInactivity` (30 s), shared by the group's consumers in one bus and deleted when the last of them cancels; the server removes it after the threshold when a process stops without cancelling. |
 | Settling | Acknowledge is `+ACK`, redelivery `-NAK`, a dead letter a publish to `<topic>.dlq` followed by `+TERM`. |
 | The attempt | Read from the delivered count in JetStream's reply subject. |
 | Duplicate detection | The message id travels as `Nats-Msg-Id`. |
@@ -125,7 +126,7 @@ dart run example/nats_message_bus_example.dart
 | `dart_nats` | runtime | The NATS client: the connection, JetStream streams, durable pull consumers, ack / nak / term |
 | `tom_core_message_bus` | runtime | `TomMessageBus`, `TomBusMessage`, `TomBusDelivery`, `TomBusCodec`, `TomBusTrace`, `tomCheckSubscription`, `tomDeadLetterTopic`, `TomBusException` |
 | `tom_core_kernel` | runtime | The exception base and `tomLog` |
-| `tom_core_server` | dev | `TomBusRelay`, for the relay-through-NATS tests |
+| `tom_core_server` | dev | `TomBusRelay` and `TomBusInvalidationChannel`, for the relay-through-NATS and invalidation tests |
 | `test`, `lints` | dev | The suites and analysis |
 
 ## Status
@@ -134,5 +135,8 @@ Version **0.1.0**. `dart test` runs the offline unit suite
 (`test/nats_bus_test.dart`); the tests tagged `nats` — the bus's conformance
 suite, the relay tests, the refusals and the example — skip themselves without
 a server. `tool/run_nats_tests.sh` starts `nats:2.10-alpine` with JetStream in
-Docker, runs them and fails when every one of them skipped: 24 pass and MB-C18,
+Docker, runs them and fails when every one of them skipped: 27 pass and MB-C18,
 the ordering test, is skipped because the bus declares no ordering per key.
+Among them is NB-V1 (`test/nats_invalidation_test.dart`): the server's
+`TomBusInvalidationChannel` between two isolates over NATS, a grant revoked on
+one node refused on the other within the channel's bound.

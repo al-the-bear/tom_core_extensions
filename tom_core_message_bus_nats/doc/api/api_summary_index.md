@@ -20,7 +20,7 @@ members are listed; `_`-prefixed declarations are omitted.
 
 | Type | Kind | Description |
 | ---- | ---- | ----------- |
-| `TomNatsMessageBus` | class | A `TomMessageBus` over a NATS server with JetStream: a stream per topic, a durable pull consumer per group. |
+| `TomNatsMessageBus` | class | A `TomMessageBus` over a NATS server with JetStream: a stream per topic, a durable pull consumer per group, an unnamed pull consumer per ephemeral group. |
 
 ## Alphabetical Type Index
 

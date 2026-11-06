@@ -6,7 +6,7 @@ a bus; the pages below carry the detail.
 
 | Document | Covers |
 | -------- | ------ |
-| [nats_message_bus.md](nats_message_bus.md) | Connecting, how the contract maps onto JetStream, consumer groups, settling and dead letters, retention and the duplicate window, the error keys, what is not implemented, and running the suite |
+| [nats_message_bus.md](nats_message_bus.md) | Connecting, how the contract maps onto JetStream, consumer groups (durable and ephemeral), settling and dead letters, retention and the duplicate window, the error keys, what is not implemented, and running the suite |
 | [api/api_summary_index.md](api/api_summary_index.md) | The API reference index |
 | [api/api_summary_nats_message_bus.md](api/api_summary_nats_message_bus.md) | `TomNatsMessageBus`: every public member, with signatures |
 

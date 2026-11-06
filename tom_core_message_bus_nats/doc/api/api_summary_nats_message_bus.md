@@ -39,7 +39,8 @@ TomMessageBus  (tom_core_message_bus)
 ### TomNatsMessageBus
 
 A `TomMessageBus` over a NATS server with JetStream: a stream per topic, a
-durable pull consumer per consumer group.
+durable pull consumer per consumer group, an unnamed pull consumer per
+ephemeral group.
 
 - **Implements:** `TomMessageBus` (from `tom_core_message_bus`)
 
@@ -76,6 +77,7 @@ A bus over `client`, already connected to a NATS server with JetStream.
 | `idHeader` | `String` | `Tom-Bus-Id` | The header carrying the message id. |
 | `keyHeader` | `String` | `Tom-Bus-Key` | The header carrying the ordering key, when the message has one. |
 | `publishedAtHeader` | `String` | `Tom-Bus-Published-At` | The header carrying the publication time, ISO 8601 in UTC. |
+| `ephemeralInactivity` | `Duration` | 30 seconds | The `inactive_threshold` of an ephemeral group's consumer: how long the server keeps it without a pull, so a process that stopped without cancelling leaves it this long. |
 
 #### Properties
 
@@ -94,5 +96,5 @@ A bus over `client`, already connected to a NATS server with JetStream.
 | ------ | --------- | ----------- |
 | `subjectOf` | `String subjectOf(String topic)` | The subject of `topic`: `validSubject(subjectPrefix, topic)`. |
 | `publish` | `Future<String> publish<T>(String topic, T payload, {String? key, Map<String, String> headers = const {}, String? id, TomBusCodec<T>? codec})` | Encodes `payload`, creates the topic's stream if needed and publishes inside `TomBusTrace.publishing`, with the id as `Nats-Msg-Id`. Answers the message id (`id`, or a new one). Throws `message_bus.closed`, `message_bus.nats.invalid_topic`, `message_bus.nats.stream_failed`, `message_bus.nats.publish_failed`, `message_bus.payload.not_json`. |
-| `subscribe` | `Future<TomBusSubscription> subscribe<T>(String topic, {required String group, required TomBusHandler<T> handler, TomBusCodec<T>? codec, int maxDeliveries = 5})` | Checks the arguments, creates the topic's stream and the group's durable consumer (deliver policy `new`, explicit acknowledgement) and starts one consumer loop. Throws `message_bus.closed`, `message_bus.subscribe.invalid`, `message_bus.nats.invalid_topic`, `message_bus.nats.stream_failed`, `message_bus.nats.consumer_failed`. |
+| `subscribe` | `Future<TomBusSubscription> subscribe<T>(String topic, {required String group, required TomBusHandler<T> handler, TomBusCodec<T>? codec, int maxDeliveries = 5, bool ephemeral = false})` | Checks the arguments, creates the topic's stream and the group's durable consumer (deliver policy `new`, explicit acknowledgement) and starts one consumer loop. With `ephemeral` the group's consumer is unnamed, with `inactive_threshold` `ephemeralInactivity`, shared by the group's subscribers in this bus and deleted when the last of them cancels. Throws `message_bus.closed`, `message_bus.subscribe.invalid`, `message_bus.nats.invalid_topic`, `message_bus.nats.stream_failed`, `message_bus.nats.consumer_failed`. |
 | `close` | `Future<void> close()` | Refuses further calls, cancels every consumer and closes `client` when `ownsClient`. A second call answers the same future. |

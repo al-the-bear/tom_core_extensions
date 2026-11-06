@@ -263,21 +263,16 @@ class TomNatsMessageBus implements TomMessageBus {
     required TomBusHandler<T> handler,
     TomBusCodec<T>? codec,
     int maxDeliveries = 5,
+    bool ephemeral = false,
   }) async {
     _requireOpen();
     tomCheckSubscription(topic, group, maxDeliveries);
     final stream = await _stream(topic);
-    final durable = consumerOf(group);
+    final String name;
     try {
-      await _js.createConsumer<dynamic>(
-        stream,
-        ConsumerConfig(
-          durable: durable,
-          filterSubject: subjectOf(topic),
-          deliverPolicy: 'new',
-          ackPolicy: 'explicit',
-        ),
-      );
+      name = ephemeral
+          ? await _ephemeralConsumer(stream, topic, group)
+          : await _durableConsumer(stream, topic, group);
     } on Object catch (error, stack) {
       throw TomBusException(
         'message_bus.nats.consumer_failed',
@@ -293,14 +288,98 @@ class TomNatsMessageBus implements TomMessageBus {
       this,
       topic,
       group,
-      _js.consumer<dynamic>(stream, durable),
+      _js.consumer<dynamic>(stream, name),
       maxDeliveries,
       (message, attempt) =>
           _handle(message, attempt, group, effective, handler),
     );
+    if (ephemeral) {
+      consumer.onLastCancel = () => _releaseEphemeral(stream, topic, group);
+      _ephemeralUsers[_ephemeralKey(topic, group)] =
+          (_ephemeralUsers[_ephemeralKey(topic, group)] ?? 0) + 1;
+    }
     _consumers.add(consumer);
     consumer.start();
     return consumer;
+  }
+
+  /// The group's durable consumer, created if it does not exist.
+  Future<String> _durableConsumer(
+    String stream,
+    String topic,
+    String group,
+  ) async {
+    final durable = consumerOf(group);
+    await _js.createConsumer<dynamic>(
+      stream,
+      ConsumerConfig(
+        durable: durable,
+        filterSubject: subjectOf(topic),
+        deliverPolicy: 'new',
+        ackPolicy: 'explicit',
+      ),
+    );
+    return durable;
+  }
+
+  /// How long the server keeps an ephemeral group's consumer that nobody pulls
+  /// from — a process that stopped without cancelling leaves it this long.
+  static const Duration ephemeralInactivity = Duration(seconds: 30);
+
+  final Map<String, Future<String>> _ephemeral = {};
+  final Map<String, int> _ephemeralUsers = {};
+
+  static String _ephemeralKey(String topic, String group) =>
+      '$topic\u0000$group';
+
+  /// The ephemeral group's consumer: one unnamed consumer per group in this
+  /// bus, shared by the group's subscribers here, removed by the server after
+  /// [ephemeralInactivity] without a pull.
+  Future<String> _ephemeralConsumer(String stream, String topic, String group) {
+    final key = _ephemeralKey(topic, group);
+    return _ephemeral[key] ??= () async {
+      try {
+        final consumer = await _js.createConsumer<dynamic>(
+          stream,
+          ConsumerConfig(
+            filterSubject: subjectOf(topic),
+            deliverPolicy: 'new',
+            ackPolicy: 'explicit',
+            inactiveThreshold: ephemeralInactivity,
+          ),
+        );
+        return consumer.name;
+      } on Object {
+        _ephemeral.remove(key);
+        rethrow;
+      }
+    }();
+  }
+
+  /// The last subscriber of an ephemeral group in this bus cancelled: the
+  /// group's consumer goes, and with it what waited for it.
+  Future<void> _releaseEphemeral(
+    String stream,
+    String topic,
+    String group,
+  ) async {
+    final key = _ephemeralKey(topic, group);
+    final users = (_ephemeralUsers[key] ?? 1) - 1;
+    if (users > 0) {
+      _ephemeralUsers[key] = users;
+      return;
+    }
+    _ephemeralUsers.remove(key);
+    final name = await _ephemeral.remove(key);
+    if (name == null) return;
+    try {
+      await _js.deleteConsumer(stream, name);
+    } on Object catch (error) {
+      // The server removes it after its inactivity threshold anyway.
+      tomLog.warn(
+        'The consumer of ephemeral group $group was not deleted: $error',
+      );
+    }
   }
 
   static Future<(TomBusOutcome, String?)> _handle<T>(
@@ -420,6 +499,9 @@ class _NatsConsumer implements TomBusSubscription {
   bool _active = true;
   Future<void>? _loop;
 
+  /// Runs once this consumer has stopped — an ephemeral group's release.
+  Future<void> Function()? onLastCancel;
+
   void start() => _loop = _run();
 
   Future<void> _run() async {
@@ -486,8 +568,10 @@ class _NatsConsumer implements TomBusSubscription {
 
   @override
   Future<void> cancel() async {
+    if (!_active) return;
     _active = false;
     _bus._consumers.remove(this);
     await _loop;
+    await onLastCancel?.call();
   }
 }
