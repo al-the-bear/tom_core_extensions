@@ -28,8 +28,10 @@ publisher-confirm fix the unmaintained upstream lacks,
 [`tom_core_message_bus_kafka`](../tom_core_message_bus_kafka/README.md) over
 Kafka through a REST proxy,
 [`tom_core_message_bus_aws`](../tom_core_message_bus_aws/README.md) over Amazon
-SNS and SQS, and [`tom_core_message_bus_gcp`](../tom_core_message_bus_gcp/README.md)
-over Google Cloud Pub/Sub.
+SNS and SQS, [`tom_core_message_bus_gcp`](../tom_core_message_bus_gcp/README.md)
+over Google Cloud Pub/Sub, and
+[`tom_core_message_bus_azure`](../tom_core_message_bus_azure/README.md) over
+Azure Service Bus.
 
 The contract is **at least once**, as for every bus: a message is delivered
 until a consumer of its group acknowledges it or it is dead-lettered, under the

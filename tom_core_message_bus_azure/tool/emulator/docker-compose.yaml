@@ -1,0 +1,23 @@
+# The Azure Service Bus emulator and the SQL Edge database it keeps its state
+# in, for tool/run_azure_tests.sh. Messaging is AMQP on 5672; the management
+# API is HTTP on 5300. Config.json declares the namespace and no entities: the
+# bus creates its topics and subscriptions through the management API.
+name: tom-core-message-bus-azure-test
+services:
+  sql:
+    image: mcr.microsoft.com/azure-sql-edge:latest
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: "TomBus-Emulator-1"
+  emulator:
+    image: mcr.microsoft.com/azure-messaging/servicebus-emulator:latest
+    depends_on: [sql]
+    volumes:
+      - ./Config.json:/ServiceBus_Emulator/ConfigFiles/Config.json
+    environment:
+      ACCEPT_EULA: "Y"
+      SQL_SERVER: sql
+      MSSQL_SA_PASSWORD: "TomBus-Emulator-1"
+    ports:
+      - "127.0.0.1:${AZURE_SB_AMQP_PORT:-15672}:5672"
+      - "127.0.0.1:${AZURE_SB_HTTP_PORT:-15300}:5300"

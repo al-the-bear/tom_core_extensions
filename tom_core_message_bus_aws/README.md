@@ -23,9 +23,11 @@ contract changes. The other adapters are
 [`tom_core_message_bus_nats`](../tom_core_message_bus_nats/README.md) (NATS
 JetStream), [`tom_core_message_bus_rabbitmq`](../tom_core_message_bus_rabbitmq/README.md)
 (RabbitMQ), [`tom_core_message_bus_kafka`](../tom_core_message_bus_kafka/README.md)
-(Kafka through a REST proxy) and
+(Kafka through a REST proxy),
 [`tom_core_message_bus_gcp`](../tom_core_message_bus_gcp/README.md) (Google
-Cloud Pub/Sub).
+Cloud Pub/Sub) and
+[`tom_core_message_bus_azure`](../tom_core_message_bus_azure/README.md) (Azure
+Service Bus).
 
 The bus speaks HTTP to both services, with no AWS SDK: the **SQS JSON
 protocol** (`application/x-amz-json-1.0`) and the **SNS query protocol**, every

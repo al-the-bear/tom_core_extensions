@@ -21,3 +21,4 @@ a bus; the pages below carry the detail.
 | [`tom_core_message_bus_kafka/doc/kafka_message_bus.md`](../../tom_core_message_bus_kafka/doc/kafka_message_bus.md) | The Kafka adapter, over a REST proxy |
 | [`tom_core_message_bus_aws/doc/aws_message_bus.md`](../../tom_core_message_bus_aws/doc/aws_message_bus.md) | The AWS adapter, over SNS and SQS |
 | [`tom_core_message_bus_gcp/doc/gcp_message_bus.md`](../../tom_core_message_bus_gcp/doc/gcp_message_bus.md) | The Google Cloud Pub/Sub adapter |
+| [`tom_core_message_bus_azure/doc/azure_message_bus.md`](../../tom_core_message_bus_azure/doc/azure_message_bus.md) | The Azure Service Bus adapter, over AMQP 1.0 |

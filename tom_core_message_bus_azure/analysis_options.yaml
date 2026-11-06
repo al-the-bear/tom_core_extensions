@@ -1,0 +1,8 @@
+include: package:lints/recommended.yaml
+
+linter:
+  rules:
+    # Every public member carries a doc comment; the lint makes `dart analyze`
+    # the ratchet rather than a later coverage sweep.
+    public_member_api_docs: true
+    comment_references: true

@@ -22,8 +22,10 @@ contract changes. The other adapters are
 [`tom_core_message_bus_nats`](../tom_core_message_bus_nats/README.md) (NATS
 JetStream), [`tom_core_message_bus_kafka`](../tom_core_message_bus_kafka/README.md)
 (Kafka through a REST proxy), [`tom_core_message_bus_aws`](../tom_core_message_bus_aws/README.md)
-(Amazon SNS and SQS) and [`tom_core_message_bus_gcp`](../tom_core_message_bus_gcp/README.md)
-(Google Cloud Pub/Sub).
+(Amazon SNS and SQS), [`tom_core_message_bus_gcp`](../tom_core_message_bus_gcp/README.md)
+(Google Cloud Pub/Sub) and
+[`tom_core_message_bus_azure`](../tom_core_message_bus_azure/README.md) (Azure
+Service Bus).
 
 The contract is **at least once**, as for every bus: a message is delivered
 until a consumer of its group acknowledges it or it is dead-lettered, under the

@@ -22,9 +22,11 @@ contract changes. The other adapters are
 [`tom_core_message_bus_nats`](../tom_core_message_bus_nats/README.md) (NATS
 JetStream), [`tom_core_message_bus_rabbitmq`](../tom_core_message_bus_rabbitmq/README.md)
 (RabbitMQ), [`tom_core_message_bus_kafka`](../tom_core_message_bus_kafka/README.md)
-(Kafka through a REST proxy) and
+(Kafka through a REST proxy),
 [`tom_core_message_bus_aws`](../tom_core_message_bus_aws/README.md) (Amazon SNS
-and SQS).
+and SQS) and
+[`tom_core_message_bus_azure`](../tom_core_message_bus_azure/README.md) (Azure
+Service Bus).
 
 The bus speaks Pub/Sub's REST API (`v1`) over HTTP, with no Google SDK. Every
 request carries the access token of a `TomGcpTokenSource`: a service account's,
