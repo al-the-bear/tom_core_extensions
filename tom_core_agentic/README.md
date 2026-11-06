@@ -220,7 +220,10 @@ and no credential store.
     `AgentSdkQuestResume` reads the one a VS Code window's quest history
     holds, read-only. A resumed conversation the far end does not know
     (`agentSdkLooksLikeResumeError`) is evicted and retried once, fresh, while
-    no text has been delivered; the run's report counts the retry.
+    no text has been delivered; the run's report counts the retry. Claude Code
+    says so before any turn, as `No conversation found with session ID: …` in
+    the failed result's `errors`, and the channel makes those words the
+    failure's message (verified live over a VS Code CLI server).
   - **`whenBusy`** (`AgentSdkWhenBusy`): `refuse` a run in a busy session
     (`LlmSessionBusyException`), or `queue` it until the session is free. A
     backend that opens a session per caller also gives the

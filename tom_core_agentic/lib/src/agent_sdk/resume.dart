@@ -265,6 +265,8 @@ bool agentSdkLooksLikeResumeError(String message) {
   if (!lower.contains('session')) return false;
   const cues = <String>[
     'not found',
+    // Claude Code: "No conversation found with session ID: <id>".
+    'no conversation found',
     'invalid',
     'no such',
     'unknown',

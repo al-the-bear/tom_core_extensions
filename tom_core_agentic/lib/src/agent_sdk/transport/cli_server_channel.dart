@@ -249,7 +249,9 @@ final class CliServerAiChannel {
             controller.addError(
               LlmTransportException(
                 LlmErrorKind.remote,
-                result ?? 'The AI server reported a failed run.',
+                result ??
+                    _resultErrors(message.raw) ??
+                    'The AI server reported a failed run.',
                 transportId: transportId,
               ),
             );
@@ -389,4 +391,22 @@ final class CliServerAiChannel {
       await client.disconnect().timeout(closeBound, onTimeout: () {});
     }
   }
+}
+
+/// The reasons a failed result gives in its `errors` list, joined, or null
+/// when it gives none.
+///
+/// Claude Code reports a failure before any turn — resuming a conversation it
+/// does not know is the measured case — with no `result` text and the reason
+/// in `errors` (`"No conversation found with session ID: …"`). Dropping it
+/// left the run failing with a sentence nothing could act on, the resume
+/// retry included.
+String? _resultErrors(Map<String, dynamic> raw) {
+  final errors = raw['errors'];
+  if (errors is! List) return null;
+  final reasons = [
+    for (final e in errors)
+      if (e is String && e.trim().isNotEmpty) e.trim(),
+  ];
+  return reasons.isEmpty ? null : reasons.join('; ');
 }

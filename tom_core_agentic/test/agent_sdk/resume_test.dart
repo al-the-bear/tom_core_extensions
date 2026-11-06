@@ -195,6 +195,13 @@ void main() {
       () {
         expect(agentSdkLooksLikeResumeError('Session abc not found'), isTrue);
         expect(agentSdkLooksLikeResumeError('session id is invalid'), isTrue);
+        // What Claude Code says, measured live (qim_none-7).
+        expect(
+          agentSdkLooksLikeResumeError(
+            'No conversation found with session ID: 00000000-dead',
+          ),
+          isTrue,
+        );
         expect(agentSdkLooksLikeResumeError('session started'), isFalse);
         expect(agentSdkLooksLikeResumeError('file not found'), isFalse);
       },

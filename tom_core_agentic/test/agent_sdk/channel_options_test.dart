@@ -9,6 +9,7 @@ library;
 import 'package:test/test.dart';
 import 'package:tom_core_agentic/agent_sdk.dart';
 import 'package:tom_core_agentic/agent_sdk_testing.dart';
+import 'package:tom_llm/tom_llm.dart' show LlmTransportException;
 
 Future<(FakeAiServer, HostedCliServerAiTransport)> _connected({
   List<Map<String, dynamic>> recorded = const [],
@@ -109,4 +110,36 @@ void main() {
       ]);
     },
   );
+
+  test("CHANNEL-4: a failed result that says why only in `errors` fails "
+      'with those words', () async {
+    // Recorded 2026-11-06 from Claude Code over a live VS Code CLI server,
+    // resuming a conversation it does not know: `result` is absent and the
+    // reason is in `errors` (qim_none-7).
+    final (_, transport) = await _connected(
+      recorded: [
+        {
+          'type': 'result',
+          'subtype': 'error_during_execution',
+          'is_error': true,
+          'num_turns': 0,
+          'session_id': 'c-stale',
+          'errors': ['No conversation found with session ID: c-stale'],
+        },
+      ],
+    );
+
+    final error = await transport
+        .complete(
+          const AgentSdkCompletionRequest(prompt: 'Hi.', resume: 'c-stale'),
+        )
+        .drain<void>()
+        .then<Object?>((_) => null, onError: (Object e) => e);
+
+    expect(error, isA<LlmTransportException>());
+    expect(
+      (error! as LlmTransportException).message,
+      'No conversation found with session ID: c-stale',
+    );
+  });
 }
