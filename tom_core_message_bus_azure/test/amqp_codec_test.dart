@@ -92,7 +92,7 @@ void main() {
         const AmqpSymbol('PLAIN'),
         const AmqpSymbol('ANONYMOUS'),
       ]);
-      // As a server sends it: array8 of sym8.
+      // As a server sends it: an 8-bit array of 8-bit symbols.
       expect(
         amqpDecode(
           Uint8List.fromList([0xe0, 7, 1, 0xa3, 5, ...ascii.encode('PLAIN')]),
