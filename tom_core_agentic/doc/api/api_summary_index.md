@@ -29,7 +29,7 @@ three types with one each.
 
 | Unit | Members | Types | Summary |
 | ---- | ------: | ----: | ------- |
-| `agent` | 345 | 52 | yes |
+| `agent` | 342 | 53 | yes |
 | `isolate_streaming` | 47 | 12 | yes |
 | `placeholders` | 35 | 6 | yes |
 | `bearer_auth` | 5 | 3 | yes, and `doc/bearer_auth.md` |
@@ -93,6 +93,7 @@ Summary: [api_summary_agent.md](api_summary_agent.md)
 | `AgentSendStarted` | final class | Emitted once, first, when a send begins. |
 | `AgentSettings` | final class | Global agent settings: bridge target + the defaults a profile overlays. |
 | `AgentSettingsStore` | final class | Loads/saves the singleton [AgentSettings] as YAML. |
+| `AgentSidecarStore` | abstract base class | The base of the agent stores: one YAML sidecar read and written through the workspace's `TomFileSystem`. |
 | `BridgeChoice` | final class | The persisted choice: which host+port the editor last bound to. |
 | `BridgeChoiceStore` | final class | Persists the picked bridge server to a YAML sidecar so the binding is restored on the next launch. |
 | `BridgeConnectionService` | final class | Discovers live VS Code bridge servers. |
@@ -142,7 +143,6 @@ Summary: [api_summary_agent.md](api_summary_agent.md)
 | `encodeAgentYaml` | function | Serialises [data] to a YAML document string. |
 | `permissionModeForApproval` | function | The SDK permission mode a [ToolApprovalMode] asks for. |
 | `thinkingConfigFor` | function | The SDK thinking configuration a profile's thinking settings ask for, or `null` when unset. |
-| `readAgentYamlFile` | function | Reads and parses the sidecar at [file], or `null` when it is missing, empty, unreadable or malformed. |
 | `specSessionLooksLikeError` | function | True when [message] should be treated as an SDK **session error** under the editor rule: its text contains `session`, `message`, or `msg` (case-insensitive). |
 | `yamlEnum` | function | Reads [key] as a string and maps it through [fromValue], or `null` when [key] holds no string. |
 | `yamlStringList` | function | Reads [key] as a list of strings, keeping the elements that are strings, or `null` when [key] does not hold a list. |

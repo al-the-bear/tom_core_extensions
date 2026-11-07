@@ -23,11 +23,10 @@
 // session-error rule than the provider's resume matcher.
 
 import 'dart:async';
-import 'dart:io';
 
-import 'package:path/path.dart' as p;
 import 'package:tom_basics/utilities.dart' show TomCancellationToken;
 import 'package:tom_vscode_scripting_api/tom_vscode_scripting_api.dart';
+import 'package:tom_file_system/tom_file_system.dart';
 
 import 'agent_profile.dart' show AgentProfile, ToolApprovalMode;
 import 'agent_settings.dart' show AgentSettings;
@@ -54,50 +53,51 @@ bool specSessionLooksLikeError(String message) {
 /// document content.
 ///
 /// Mirrors the editor's other sidecars (e.g. `BridgeChoiceStore`): a small YAML
-/// file written synchronously on every change, degrading to "no session" on any
+/// file written on every change, degrading to "no session" on any
 /// read/parse error rather than throwing.
-final class SpecSessionStore {
-  SpecSessionStore(this.file);
-
-  /// The backing YAML file.
-  final File file;
+final class SpecSessionStore extends AgentSidecarStore {
+  SpecSessionStore({required super.fileSystem, required super.uri});
 
   /// Resolves the sidecar location. Honors `TOM_SPECS_SESSION_FILE`; falls back
-  /// to `<cwd>/.tom/agent_session.yaml`.
-  factory SpecSessionStore.resolveDefault() {
-    final override = Platform.environment['TOM_SPECS_SESSION_FILE'];
-    final path = (override != null && override.isNotEmpty)
-        ? override
-        : p.join(Directory.current.path, '.tom', 'agent_session.yaml');
-    return SpecSessionStore(File(path));
-  }
+  /// to `.tom/agent_session.yaml` in the workspace.
+  /// [environment] is the process environment (the host passes it); the
+  /// variable names a path relative to the workspace, or an absolute one.
+  factory SpecSessionStore.resolveDefault(
+    TomFileSystem fileSystem, {
+    Map<String, String> environment = const {},
+  }) => SpecSessionStore(
+    fileSystem: fileSystem,
+    uri: AgentSidecarStore.locate(
+      fileSystem,
+      environment: environment,
+      variable: 'TOM_SPECS_SESSION_FILE',
+      defaultPath: '.tom/agent_session.yaml',
+    ),
+  );
 
   /// Loads the stored session id, or `null` if none is persisted (or the file
   /// is missing / unreadable / malformed).
   ///
   /// The one sidecar holding a bare scalar rather than a model, so it reads
   /// the shared file loader directly instead of one of its decoders.
-  String? load() {
-    final id = readAgentYamlFile(file)?['sessionId'];
+  Future<String?> load() async {
+    final id = (await readRoot())?['sessionId'];
     return id is String && id.isNotEmpty ? id : null;
   }
 
-  /// Persists [sessionId], creating the parent directory if needed.
-  void save(String sessionId) {
+  /// Persists [sessionId], making its folder when it is missing.
+  Future<void> save(String sessionId) {
     final buffer = StringBuffer()
       ..writeln('# TomSpecs editor — per-specification Agent SDK session id.')
       ..writeln('# Auto-refreshed on session errors. Not part of the')
       ..writeln('# document save — this is transport state only.')
       ..writeln('version: 1')
       ..writeln('sessionId: $sessionId');
-    file.parent.createSync(recursive: true);
-    file.writeAsStringSync(buffer.toString());
+    return writeText(buffer.toString());
   }
 
   /// Forgets the stored session id (e.g. after a session error).
-  void clear() {
-    if (file.existsSync()) file.deleteSync();
-  }
+  Future<void> clear() => deleteFile();
 }
 
 /// The SDK permission mode a [ToolApprovalMode] asks for.
@@ -354,7 +354,7 @@ final class AgentSendEngine {
   }) async* {
     yield const AgentSendStarted();
 
-    String? resumeId = sessionStore.load();
+    String? resumeId = await sessionStore.load();
     var retried = false;
     var emittedChunk = false;
 
@@ -405,7 +405,7 @@ final class AgentSendEngine {
             !retried &&
             !emittedChunk &&
             specSessionLooksLikeError(errorText)) {
-          sessionStore.clear();
+          await sessionStore.clear();
           resumeId = null;
           retried = true;
           yield const AgentSendSessionRefreshed();
@@ -425,7 +425,7 @@ final class AgentSendEngine {
       // Success: persist the session id so the next send resumes this turn.
       final sessionId = result.sessionId;
       if (sessionId != null && sessionId.isNotEmpty) {
-        sessionStore.save(sessionId);
+        await sessionStore.save(sessionId);
       }
       yield AgentSendCompleted(sessionId);
       return;

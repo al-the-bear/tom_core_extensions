@@ -23,6 +23,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:tom_core_agentic/tom_core_agentic.dart';
+import 'package:tom_file_system/tom_file_system.dart';
 // Only the four transport names the injected double needs. The two packages
 // both declare a `QueuedPrompt`, and this example is about the one in
 // `tom_core_agentic`.
@@ -34,16 +35,15 @@ import '../require_asserts.dart';
 Future<void> main() async {
   requireAsserts();
 
-  final workspace = Directory.systemTemp.createTempSync('tom_agent_example');
-  try {
-    _demoStoreRoundTrip(workspace);
-    _demoStoreDegradation(workspace);
-    await _demoBridgeDiscovery();
-    await _demoReconnect();
-    await _demoSend(workspace);
-  } finally {
-    if (workspace.existsSync()) workspace.deleteSync(recursive: true);
-  }
+  // The stores read and write through a workspace's file system: the local
+  // disk in an editor (a TomLocalFileSystem of the workspace folder), memory
+  // here.
+  final workspace = TomMemoryFileSystem();
+  await _demoStoreRoundTrip(workspace);
+  await _demoStoreDegradation(workspace);
+  await _demoBridgeDiscovery();
+  await _demoReconnect();
+  await _demoSend(workspace);
 
   print('\nagent demo completed.');
 }
@@ -51,21 +51,18 @@ Future<void> main() async {
 // ---------------------------------------------------------------------------
 // 1a. A sidecar store round-trips its model.
 // ---------------------------------------------------------------------------
-void _demoStoreRoundTrip(Directory workspace) {
+Future<void> _demoStoreRoundTrip(TomFileSystem workspace) async {
   print('== store round-trip ==');
 
-  // Each store is constructed with the file it owns. In an editor the store is
-  // built by `resolveDefault()`, which honours an environment override
-  // (`TOM_SPECS_QUEUE_FILE` for this one) and otherwise falls back to
-  // `<cwd>/.tom/prompt_queue.yaml`. Naming the file directly is what a test —
-  // or a demo — does instead, and is the whole of the difference.
-  final store = PromptQueueStore(
-    File('${workspace.path}/.tom/prompt_queue.yaml'),
-  );
+  // Each store owns one file of the workspace. `resolveDefault` places it at
+  // `.tom/prompt_queue.yaml`, unless the environment the host passes names
+  // another path (`TOM_SPECS_QUEUE_FILE` for this one).
+  final store = PromptQueueStore.resolveDefault(workspace);
 
   // Nothing persisted yet: an absent file is an empty queue, not an error.
-  assert(store.load().isEmpty);
-  print('  no file yet -> ${store.load().length} items');
+  final empty = await store.load();
+  assert(empty.isEmpty);
+  print('  no file yet -> ${empty.length} items');
 
   final queued = QueuedPrompt(
     id: 'p-1',
@@ -75,9 +72,9 @@ void _demoStoreRoundTrip(Directory workspace) {
     status: QueuedPromptStatus.staged,
     transport: QueuedTransport.anthropic,
   );
-  store.save([queued]);
+  await store.save([queued]);
 
-  final loaded = store.load();
+  final loaded = await store.load();
   assert(loaded.length == 1);
   assert(loaded.single.id == 'p-1');
   assert(loaded.single.originalText == 'Summarise the spec');
@@ -93,7 +90,7 @@ void _demoStoreRoundTrip(Directory workspace) {
 
   // The file is YAML a person can open and edit, which is why the degradation
   // rules below exist at all.
-  final text = store.file.readAsStringSync();
+  final text = await workspace.readText(store.uri);
   assert(text.contains('version: 1'));
   assert(text.contains('items:'));
   print('  on disk: ${text.split('\n').first}');
@@ -102,23 +99,30 @@ void _demoStoreRoundTrip(Directory workspace) {
 // ---------------------------------------------------------------------------
 // 1b. Damage costs a file or an entry, never a crash.
 // ---------------------------------------------------------------------------
-void _demoStoreDegradation(Directory workspace) {
+Future<void> _demoStoreDegradation(TomFileSystem workspace) async {
   print('\n== store degradation ==');
 
   // Parse damage costs the file. A sidecar that does not parse reads as a
   // sidecar that is not there, because to a caller about to fall back on its
   // defaults those are the same file.
-  final broken = PromptQueueStore(File('${workspace.path}/broken.yaml'))
-    ..file.writeAsStringSync('items: [this is not: valid: yaml');
-  assert(broken.load().isEmpty);
-  print('  unparseable file -> ${broken.load().length} items, no throw');
+  final broken = PromptQueueStore(
+    fileSystem: workspace,
+    uri: workspace.uriOf('broken.yaml'),
+  );
+  await workspace.writeText(broken.uri, 'items: [this is not: valid: yaml');
+  final none = await broken.load();
+  assert(none.isEmpty);
+  print('  unparseable file -> ${none.length} items, no throw');
 
   // Shape damage costs one entry. Three rows here: one good, one with an
   // unusable id, one whose field has the wrong type. Only the good row
   // survives — and, the point of the rule, it survives *beside* the bad ones
   // rather than being discarded with them.
-  final mixed = PromptQueueStore(File('${workspace.path}/mixed.yaml'))
-    ..file.writeAsStringSync('''
+  final mixed = PromptQueueStore(
+    fileSystem: workspace,
+    uri: workspace.uriOf('mixed.yaml'),
+  );
+  await workspace.writeText(mixed.uri, '''
 version: 1
 items:
   - id: good
@@ -133,7 +137,7 @@ items:
     expandedText: no id at all
     createdAt: 2026-01-02T03:04:05.000Z
 ''');
-  final survivors = mixed.load();
+  final survivors = await mixed.load();
   assert(survivors.length == 1);
   assert(survivors.single.id == 'good');
   print(
@@ -270,12 +274,10 @@ Future<void> _demoReconnect() async {
 // ---------------------------------------------------------------------------
 // 4. Sending a prompt, and recovering from a stale session id.
 // ---------------------------------------------------------------------------
-Future<void> _demoSend(Directory workspace) async {
+Future<void> _demoSend(TomFileSystem workspace) async {
   print('\n== send ==');
 
-  final sessions = SpecSessionStore(
-    File('${workspace.path}/.tom/agent_session.yaml'),
-  );
+  final sessions = SpecSessionStore.resolveDefault(workspace);
 
   // A first send with nothing stored: the engine resumes nothing, streams the
   // answer, and persists the session id the turn came back with.
@@ -293,8 +295,9 @@ Future<void> _demoSend(Directory workspace) async {
   final text = first.whereType<AgentSendChunk>().map((c) => c.text).join();
   assert(text == 'Hello from the agent.');
   assert(first.whereType<AgentSendCompleted>().single.sessionId == 's-1');
-  assert(sessions.load() == 's-1');
-  print('  first send: "$text" (session ${sessions.load()})');
+  final firstId = await sessions.load();
+  assert(firstId == 's-1');
+  print('  first send: "$text" (session $firstId)');
 
   // The next send resumes that id. Here the other side has forgotten it, so
   // the turn fails with a session-shaped error. Because nothing had streamed
@@ -320,8 +323,9 @@ Future<void> _demoSend(Directory workspace) async {
         'Recovered.',
   );
   assert(second.whereType<AgentSendCompleted>().single.sessionId == 's-2');
-  assert(sessions.load() == 's-2');
-  print('  stale session refreshed, retried once, now ${sessions.load()}');
+  final secondId = await sessions.load();
+  assert(secondId == 's-2');
+  print('  stale session refreshed, retried once, now $secondId');
 
   // The retry is allowed exactly once, and only before anything has streamed —
   // a second failure, or a failure after output, ends the send as a failure

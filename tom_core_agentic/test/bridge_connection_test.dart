@@ -1,7 +1,8 @@
 import 'dart:io';
 
-import 'package:tom_core_agentic/tom_core_agentic.dart';
 import 'package:test/test.dart';
+import 'package:tom_core_agentic/tom_core_agentic.dart';
+import 'package:tom_file_system/io.dart';
 
 void main() {
   group('BridgeConnectionService.scan', () {
@@ -123,68 +124,79 @@ void main() {
   });
 
   group('BridgeChoiceStore', () {
-    test('round-trips the bound choice through YAML', () {
-      final dir = Directory.systemTemp.createTempSync('bridge_choice_');
-      addTearDown(() => dir.deleteSync(recursive: true));
-      final store = BridgeChoiceStore(File('${dir.path}/bridge.yaml'));
+    late TomMemoryFileSystem fs;
+    setUp(() => fs = TomMemoryFileSystem());
 
-      expect(store.load(), isNull);
+    /// A store over [content] written to its default location.
+    Future<BridgeChoiceStore> storeWith(String content) async {
+      final store = BridgeChoiceStore.resolveDefault(fs);
+      await fs.writeTextMakingFolder(store.uri, content);
+      return store;
+    }
 
-      store.save(const BridgeChoice(host: '127.0.0.1', port: 19900));
-      final loaded = store.load();
+    test('round-trips the bound choice through YAML', () async {
+      final store = BridgeChoiceStore.resolveDefault(fs);
+      expect(store.uri, fs.uriOf('.tom/bridge_connection.yaml'));
+
+      expect(await store.load(), isNull);
+
+      await store.save(const BridgeChoice(host: '127.0.0.1', port: 19900));
+      final loaded = await store.load();
       expect(loaded, isNotNull);
       expect(loaded!.host, '127.0.0.1');
       expect(loaded.port, 19900);
 
-      store.clear();
-      expect(store.load(), isNull);
+      await store.clear();
+      expect(await fs.exists(store.uri), isFalse);
+      expect(await store.load(), isNull);
+    });
+
+    test('TOM_SPECS_BRIDGE_FILE moves the sidecar', () {
+      final store = BridgeChoiceStore.resolveDefault(
+        fs,
+        environment: const {'TOM_SPECS_BRIDGE_FILE': 'config/bridge.yaml'},
+      );
+      expect(store.uri, fs.uriOf('config/bridge.yaml'));
     });
 
     // The sidecar is the one a user is most likely to edit by hand — it is the
     // file you open to check which port the editor bound to. `load()` degrades
-    // like the other nine stores: missing, empty, unreadable and malformed all
+    // like the other stores: missing, empty, unreadable and malformed all
     // yield `null`, and nothing propagates to the caller.
 
-    test('returns null for a syntactically damaged file', () {
-      final dir = Directory.systemTemp.createTempSync('bridge_choice_bad_');
-      addTearDown(() => dir.deleteSync(recursive: true));
-      final file = File('${dir.path}/bridge.yaml')
-        ..writeAsStringSync('version: 1\nbridge: {port: 19900\n  broken: [\n');
+    test('returns null for a syntactically damaged file', () async {
+      final store = await storeWith(
+        'version: 1\nbridge: {port: 19900\n  broken: [\n',
+      );
 
       // `loadYaml` throws a `YamlException` here. It is a `FormatException`,
       // which is why catching that one type covers YAML damage as well.
-      expect(BridgeChoiceStore(file).load(), isNull);
+      expect(await store.load(), isNull);
     });
 
-    test('returns null for a file whose root is not a mapping', () {
-      final dir = Directory.systemTemp.createTempSync('bridge_choice_list_');
-      addTearDown(() => dir.deleteSync(recursive: true));
-      final file = File('${dir.path}/bridge.yaml')
-        ..writeAsStringSync('- just\n- a\n- list\n');
+    test('returns null for a file whose root is not a mapping', () async {
+      final store = await storeWith('- just\n- a\n- list\n');
 
-      expect(BridgeChoiceStore(file).load(), isNull);
+      expect(await store.load(), isNull);
     });
 
-    test('falls back to the defaults for mis-typed host and port', () {
-      final dir = Directory.systemTemp.createTempSync('bridge_choice_type_');
-      addTearDown(() => dir.deleteSync(recursive: true));
-
+    test('falls back to the defaults for mis-typed host and port', () async {
       // Valid YAML, wrong types — a quoted port is the classic hand-edit slip.
       // `fromMap` already defaults an *absent* key, so a value it cannot read
       // is treated the same way rather than escaping as a `TypeError`.
-      final file = File('${dir.path}/bridge.yaml')
-        ..writeAsStringSync(
-          'version: 1\nbridge:\n  host: 42\n'
-          '  port: "not-a-number"\n',
-        );
+      final store = await storeWith(
+        'version: 1\nbridge:\n  host: 42\n'
+        '  port: "not-a-number"\n',
+      );
 
-      final loaded = BridgeChoiceStore(file).load();
+      final loaded = await store.load();
       expect(loaded, isNotNull);
       expect(loaded!.host, '127.0.0.1');
       expect(loaded.port, 19900);
     });
 
-    test('returns null for an unreadable file', () {
+    // An unreadable file needs a real disk: the local file system.
+    test('returns null for an unreadable file', () async {
       final dir = Directory.systemTemp.createTempSync('bridge_choice_perm_');
       addTearDown(() => dir.deleteSync(recursive: true));
       final file = File('${dir.path}/bridge.yaml')
@@ -211,7 +223,13 @@ void main() {
         return;
       }
 
-      expect(BridgeChoiceStore(file).load(), isNull);
+      expect(
+        await BridgeChoiceStore(
+          fileSystem: TomLocalFileSystem(dir.path),
+          uri: file.uri,
+        ).load(),
+        isNull,
+      );
     });
   });
 }

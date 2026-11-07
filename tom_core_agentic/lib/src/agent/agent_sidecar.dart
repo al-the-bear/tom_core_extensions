@@ -1,38 +1,109 @@
 // Shared read + decode for the editor's YAML sidecar stores.
 //
-// The ten sidecars — queue, profiles, chat variables, prompt and queue
-// templates, timed requests, trail, agent settings, bridge choice, session id
-// — all make one promise: a damaged file costs the user a reset, never a
-// crash. Each of them used to re-implement that promise, and ten copies
-// drifted exactly as ten copies do: one shipped with no `try` at all, and all
-// ten mistook "parses as YAML" for "is shaped like the model".
-//
-// The promise lives here now, so "all ten degrade the same way" is a property
-// of one function rather than a claim about ten separate bodies.
+// The eleven sidecars — queue, profiles, chat variables, prompt, queue and
+// reminder templates, timed requests, trail, agent settings, bridge choice,
+// session id — all make one promise: a damaged file costs the user a reset,
+// never a crash. They share one base, [AgentSidecarStore], which reads and
+// writes through the workspace's file system and keeps that promise, so "all
+// eleven degrade the same way" is a property of one class rather than a claim
+// about eleven separate bodies.
 library;
 
-import 'dart:io';
+import 'dart:async';
+
+import 'package:meta/meta.dart';
+import 'package:tom_file_system/tom_file_system.dart';
 
 import 'agent_yaml.dart';
 
-/// Reads and parses the sidecar at [file], or `null` when it is missing,
-/// empty, unreadable or malformed.
+/// A store keeping its state in one YAML sidecar file of a workspace, read
+/// and written through the workspace's [TomFileSystem] — on the local disk,
+/// in memory in a test, on the web.
 ///
-/// The four cases collapse into one result on purpose: to a caller about to
-/// fall back on its defaults, a file it cannot use and a file that is not
-/// there are the same file.
-Map<String, dynamic>? readAgentYamlFile(File file) {
-  try {
-    if (!file.existsSync()) return null;
-    final content = file.readAsStringSync();
-    if (content.trim().isEmpty) return null;
-    return decodeAgentYaml(content);
-  } on FileSystemException {
-    return null;
-  } on FormatException {
-    // Covers YAML syntax damage as well: a `YamlException` is a
-    // `FormatException`, which is why two catches answer three damage shapes.
-    return null;
+/// The writes of one store run one after the other, in the order they were
+/// asked for, so the file always ends at the latest state; [settled]
+/// completes when every write asked for so far has landed. A write that fails
+/// fails the future its caller got, and the next write still runs.
+abstract base class AgentSidecarStore {
+  AgentSidecarStore({required this.fileSystem, required this.uri});
+
+  /// The file system the sidecar is read and written through.
+  final TomFileSystem fileSystem;
+
+  /// The sidecar file.
+  final Uri uri;
+
+  Future<void> _writes = Future.value();
+
+  /// Completes when every write asked for so far has landed or failed.
+  Future<void> get settled => _writes;
+
+  /// Where a store's sidecar lives in [fileSystem]: the path the
+  /// [environment] variable [variable] names when it is set (relative to the
+  /// workspace, or absolute), else [defaultPath].
+  static Uri locate(
+    TomFileSystem fileSystem, {
+    required Map<String, String> environment,
+    required String variable,
+    required String defaultPath,
+  }) {
+    final override = environment[variable];
+    return fileSystem.uriOf(
+      override != null && override.isNotEmpty ? override : defaultPath,
+    );
+  }
+
+  /// The sidecar parsed, or `null` when it is missing, empty, unreadable or
+  /// malformed.
+  ///
+  /// The four cases collapse into one result on purpose: to a caller about to
+  /// fall back on its defaults, a file it cannot use and a file that is not
+  /// there are the same file.
+  @protected
+  Future<Map<String, dynamic>?> readRoot() async {
+    final String? content;
+    try {
+      content = await fileSystem.readTextIfExists(uri);
+    } on Exception {
+      // Unreadable (permissions, not UTF-8): the defaults, as for a missing
+      // file.
+      return null;
+    }
+    if (content == null || content.trim().isEmpty) return null;
+    try {
+      return decodeAgentYaml(content);
+    } on FormatException {
+      // Covers YAML syntax damage as well: a `YamlException` is a
+      // `FormatException`.
+      return null;
+    }
+  }
+
+  /// Writes [text] to the sidecar, making its folder when it is missing,
+  /// after the writes asked for before.
+  @protected
+  Future<void> writeText(String text) =>
+      _enqueue(() => fileSystem.writeTextMakingFolder(uri, text));
+
+  /// Removes the sidecar when it exists, after the writes asked for before.
+  @protected
+  Future<void> deleteFile() => _enqueue(() async {
+    if (await fileSystem.exists(uri)) await fileSystem.delete(uri);
+  });
+
+  Future<void> _enqueue(Future<void> Function() write) {
+    final done = Completer<void>();
+    // Why: the chain itself never fails, so one failed write does not stop
+    // the next; the failure goes to the caller through [done].
+    _writes = _writes.then((_) async {
+      try {
+        await write();
+        done.complete();
+      } on Object catch (error, stack) {
+        done.completeError(error, stack);
+      }
+    });
+    return done.future;
   }
 }
 

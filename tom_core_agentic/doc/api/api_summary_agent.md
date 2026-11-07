@@ -34,6 +34,7 @@ symbol belongs to.
   - [TimedRequestStatus](#timedrequeststatus)
   - [ScheduledTime](#scheduledtime)
 - [The stores](#the-stores)
+  - [AgentSidecarStore](#agentsidecarstore)
   - [AgentProfileStore](#agentprofilestore)
   - [AgentSettingsStore](#agentsettingsstore)
   - [ChatVariableStore](#chatvariablestore)
@@ -46,7 +47,6 @@ symbol belongs to.
   - [SpecSessionStore](#specsessionstore)
   - [BridgeChoiceStore](#bridgechoicestore)
 - [The YAML plumbing](#the-yaml-plumbing)
-  - [readAgentYamlFile](#readagentyamlfile)
   - [decodeAgentYamlList](#decodeagentyamllist)
   - [decodeAgentYamlValue](#decodeagentyamlvalue)
   - [decodeAgentYamlEntries](#decodeagentyamlentries)
@@ -490,10 +490,34 @@ makes it a one-shot.
 
 ## The stores
 
-Each is constructed with a `File`, and each carries a `resolveDefault()`
-factory that honours an environment override and otherwise falls back to a
-fixed name under `<cwd>/.tom/`. The paths and overrides are tabulated in
-[`doc/agent.md`](../agent.md#the-sidecar-stores); `load()` never throws.
+Each is an [AgentSidecarStore](#agentsidecarstore) over one file of the
+workspace's `TomFileSystem`, constructed with `(fileSystem:, uri:)`, and each
+carries a `resolveDefault(fileSystem, environment:)` factory that honours the
+override the host's environment names and otherwise falls back to a fixed name
+under `.tom/` of the workspace. The paths and overrides are tabulated in
+[`doc/agent.md`](../agent.md#the-sidecar-stores); `load()` and `save()` are
+asynchronous, and `load()` never throws.
+
+### AgentSidecarStore
+
+The base of the eleven stores: one YAML sidecar file read and written through
+the workspace's `TomFileSystem`. Its writes run one after the other in the
+order they were asked for; a write that fails fails its caller's future and
+the next write still runs. `readRoot` answers `null` for a missing, empty,
+unreadable or malformed file — to a caller about to fall back on its defaults
+these are the same file.
+
+#### Properties and Methods — further members
+
+| Member | Declaration | Description |
+| ------ | ----------- | ----------- |
+| `fileSystem` | `final TomFileSystem fileSystem` | The file system the sidecar is read and written through. |
+| `uri` | `final Uri uri` | The sidecar file. |
+| `settled` | `Future<void> get settled` | Completes when every write asked for so far has landed or failed. |
+| `locate` | `static Uri locate(TomFileSystem fileSystem, {required Map<String, String> environment, required String variable, required String defaultPath})` | Where a store's sidecar lives: the path the environment variable names, else [defaultPath]. |
+| `readRoot` | `@protected Future<Map<String, dynamic>?> readRoot()` | The sidecar parsed, or `null` when it is missing, empty, unreadable or malformed. |
+| `writeText` | `@protected Future<void> writeText(String text)` | Writes the sidecar, making its folder when it is missing, after the writes before. |
+| `deleteFile` | `@protected Future<void> deleteFile()` | Removes the sidecar when it exists, after the writes before. |
 
 ### AgentProfileStore
 
@@ -504,10 +528,9 @@ Loads and saves `List<AgentProfile>` under the `profiles` key, identified by
 
 | Member | Declaration | Description |
 | ------ | ----------- | ----------- |
-| `file` | `final File file` | The backing YAML file. |
-| `load` | `List<AgentProfile> load()` | Loads the persisted profiles, or an empty list when the file is missing, unreadable or malformed. |
-| `resolveDefault` | `factory AgentProfileStore.resolveDefault()` | Resolves the profiles file. |
-| `save` | `void save(List<AgentProfile> profiles)` | Persists [profiles], creating the parent directory if needed. |
+| `load` | `Future<List<AgentProfile>> load()` | Loads the persisted profiles, or an empty list when the file is missing, unreadable or malformed. |
+| `resolveDefault` | `factory AgentProfileStore.resolveDefault(TomFileSystem fileSystem, {Map<String, String> environment = const {}})` | Resolves the profiles file. |
+| `save` | `Future<void> save(List<AgentProfile> profiles)` | Persists [profiles], making its folder when it is missing. |
 
 ### AgentSettingsStore
 
@@ -519,10 +542,9 @@ nothing to skip to.
 
 | Member | Declaration | Description |
 | ------ | ----------- | ----------- |
-| `file` | `final File file` | The backing YAML file. |
-| `load` | `AgentSettings load()` | Loads the persisted settings, or the defaults when the file is missing, unreadable, malformed or shaped unlike [AgentSettings]. |
-| `resolveDefault` | `factory AgentSettingsStore.resolveDefault()` | Resolves the agent-settings file. |
-| `save` | `void save(AgentSettings settings)` | Persists [settings], creating the parent directory if needed. |
+| `load` | `Future<AgentSettings> load()` | Loads the persisted settings, or the defaults when the file is missing, unreadable, malformed or shaped unlike [AgentSettings]. |
+| `resolveDefault` | `factory AgentSettingsStore.resolveDefault(TomFileSystem fileSystem, {Map<String, String> environment = const {}})` | Resolves the agent-settings file. |
+| `save` | `Future<void> save(AgentSettings settings)` | Persists [settings], making its folder when it is missing. |
 
 ### ChatVariableStore
 
@@ -533,10 +555,9 @@ the one store whose identity field is not `id`.
 
 | Member | Declaration | Description |
 | ------ | ----------- | ----------- |
-| `file` | `final File file` | The backing YAML file. |
-| `load` | `List<ChatVariable> load()` | Loads the persisted variables, or an empty list when the file is missing, unreadable or malformed. |
-| `resolveDefault` | `factory ChatVariableStore.resolveDefault()` | Resolves the chat-variables file. |
-| `save` | `void save(List<ChatVariable> variables)` | Persists [variables], creating the parent directory if needed. |
+| `load` | `Future<List<ChatVariable>> load()` | Loads the persisted variables, or an empty list when the file is missing, unreadable or malformed. |
+| `resolveDefault` | `factory ChatVariableStore.resolveDefault(TomFileSystem fileSystem, {Map<String, String> environment = const {}})` | Resolves the chat-variables file. |
+| `save` | `Future<void> save(List<ChatVariable> variables)` | Persists [variables], making its folder when it is missing. |
 
 ### PromptQueueStore
 
@@ -546,10 +567,9 @@ Loads and saves `List<QueuedPrompt>` under `items`, identified by `id`.
 
 | Member | Declaration | Description |
 | ------ | ----------- | ----------- |
-| `file` | `final File file` | The backing YAML file. |
-| `load` | `List<QueuedPrompt> load()` | Loads the persisted queue, or an empty list when the file is missing, unreadable or malformed. |
-| `resolveDefault` | `factory PromptQueueStore.resolveDefault()` | Resolves the queue file. |
-| `save` | `void save(List<QueuedPrompt> queue)` | Persists [queue], creating the parent directory if needed. |
+| `load` | `Future<List<QueuedPrompt>> load()` | Loads the persisted queue, or an empty list when the file is missing, unreadable or malformed. |
+| `resolveDefault` | `factory PromptQueueStore.resolveDefault(TomFileSystem fileSystem, {Map<String, String> environment = const {}})` | Resolves the queue file. |
+| `save` | `Future<void> save(List<QueuedPrompt> queue)` | Persists [queue], making its folder when it is missing. |
 
 ### PromptTemplateStore
 
@@ -559,10 +579,9 @@ Loads and saves `List<PromptTemplate>` under `templates`, identified by `id`.
 
 | Member | Declaration | Description |
 | ------ | ----------- | ----------- |
-| `file` | `final File file` | The backing YAML file. |
-| `load` | `List<PromptTemplate> load()` | Loads the persisted templates, or an empty list when the file is missing, unreadable or malformed. |
-| `resolveDefault` | `factory PromptTemplateStore.resolveDefault()` | Resolves the prompt-templates file. |
-| `save` | `void save(List<PromptTemplate> templates)` | Persists [templates], creating the parent directory if needed. |
+| `load` | `Future<List<PromptTemplate>> load()` | Loads the persisted templates, or an empty list when the file is missing, unreadable or malformed. |
+| `resolveDefault` | `factory PromptTemplateStore.resolveDefault(TomFileSystem fileSystem, {Map<String, String> environment = const {}})` | Resolves the prompt-templates file. |
+| `save` | `Future<void> save(List<PromptTemplate> templates)` | Persists [templates], making its folder when it is missing. |
 
 ### QueueTemplateStore
 
@@ -573,9 +592,9 @@ the same key as the prompt templates, in a different file.
 
 | Member | Declaration | Description |
 | ------ | ----------- | ----------- |
-| `load` | `List<QueueTemplate> load()` | Loads the persisted templates, or an empty list when the file is missing, unreadable or malformed. |
-| `resolveDefault` | `factory QueueTemplateStore.resolveDefault()` | Resolves the queue-templates file. |
-| `save` | `void save(List<QueueTemplate> templates)` | Persists [templates], creating the parent directory if needed. |
+| `load` | `Future<List<QueueTemplate>> load()` | Loads the persisted templates, or an empty list when the file is missing, unreadable or malformed. |
+| `resolveDefault` | `factory QueueTemplateStore.resolveDefault(TomFileSystem fileSystem, {Map<String, String> environment = const {}})` | Resolves the queue-templates file. |
+| `save` | `Future<void> save(List<QueueTemplate> templates)` | Persists [templates], making its folder when it is missing. |
 
 ### TimedRequestStore
 
@@ -585,10 +604,9 @@ Loads and saves `List<TimedRequest>` under `requests`, identified by `id`.
 
 | Member | Declaration | Description |
 | ------ | ----------- | ----------- |
-| `file` | `final File file` | The backing YAML file. |
-| `load` | `List<TimedRequest> load()` | Loads the persisted requests, or an empty list when the file is missing, unreadable or malformed. |
-| `resolveDefault` | `factory TimedRequestStore.resolveDefault()` | Resolves the timed-requests file. |
-| `save` | `void save(List<TimedRequest> requests)` | Persists [requests], creating the parent directory if needed. |
+| `load` | `Future<List<TimedRequest>> load()` | Loads the persisted requests, or an empty list when the file is missing, unreadable or malformed. |
+| `resolveDefault` | `factory TimedRequestStore.resolveDefault(TomFileSystem fileSystem, {Map<String, String> environment = const {}})` | Resolves the timed-requests file. |
+| `save` | `Future<void> save(List<TimedRequest> requests)` | Persists [requests], making its folder when it is missing. |
 
 ### PromptTrailStore
 
@@ -598,10 +616,9 @@ Loads and saves `List<TrailPair>` under `pairs`, identified by `id`.
 
 | Member | Declaration | Description |
 | ------ | ----------- | ----------- |
-| `file` | `final File file` | The backing YAML file. |
-| `load` | `List<TrailPair> load()` | Loads the persisted trail, or an empty list when the file is missing, unreadable or malformed. |
-| `resolveDefault` | `factory PromptTrailStore.resolveDefault()` | Resolves the trail file. |
-| `save` | `void save(List<TrailPair> trail)` | Persists [trail], creating the parent directory if needed. |
+| `load` | `Future<List<TrailPair>> load()` | Loads the persisted trail, or an empty list when the file is missing, unreadable or malformed. |
+| `resolveDefault` | `factory PromptTrailStore.resolveDefault(TomFileSystem fileSystem, {Map<String, String> environment = const {}})` | Resolves the trail file. |
+| `save` | `Future<void> save(List<TrailPair> trail)` | Persists [trail], making its folder when it is missing. |
 
 ### ReminderTemplateStore
 
@@ -615,15 +632,14 @@ find.
 
 | Member | Declaration | Description |
 | ------ | ----------- | ----------- |
-| `file` | `final File file` | The backing YAML file. |
-| `load` | `List<ReminderTemplate> load()` | Loads the persisted templates, or an empty list when the file is missing, unreadable or malformed. |
-| `resolveDefault` | `factory ReminderTemplateStore.resolveDefault()` | Resolves the reminder-templates file. |
-| `save` | `void save(List<ReminderTemplate> templates)` | Persists [templates], creating the parent directory if needed. |
+| `load` | `Future<List<ReminderTemplate>> load()` | Loads the persisted templates, or an empty list when the file is missing, unreadable or malformed. |
+| `resolveDefault` | `factory ReminderTemplateStore.resolveDefault(TomFileSystem fileSystem, {Map<String, String> environment = const {}})` | Resolves the reminder-templates file. |
+| `save` | `Future<void> save(List<ReminderTemplate> templates)` | Persists [templates], making its folder when it is missing. |
 
 ### SpecSessionStore
 
 The per-specification SDK session id. The one sidecar holding a bare scalar
-(`sessionId`) rather than a model, so it reads the shared file loader directly.
+(`sessionId`) rather than a model, so it reads the parsed file directly.
 `load()` answers `null` for an absent or empty id as well as for a damaged
 file; `save` persists; `clear` forgets, which is what a session error triggers.
 
@@ -631,7 +647,7 @@ file; `save` persists; `clear` forgets, which is what a session error triggers.
 
 | Member | Declaration | Description |
 | ------ | ----------- | ----------- |
-| `resolveDefault` | `factory SpecSessionStore.resolveDefault()` | Resolves the sidecar location. |
+| `resolveDefault` | `factory SpecSessionStore.resolveDefault(TomFileSystem fileSystem, {Map<String, String> environment = const {}})` | Resolves the sidecar location. |
 
 ### BridgeChoiceStore
 
@@ -642,20 +658,9 @@ The persisted binding. `load()` answers `null` when the file cannot supply one,
 
 | Member | Declaration | Description |
 | ------ | ----------- | ----------- |
-| `resolveDefault` | `factory BridgeChoiceStore.resolveDefault()` | Resolves the sidecar location. |
+| `resolveDefault` | `factory BridgeChoiceStore.resolveDefault(TomFileSystem fileSystem, {Map<String, String> environment = const {}})` | Resolves the sidecar location. |
 
 ## The YAML plumbing
-
-### readAgentYamlFile
-
-```dart
-Map<String, dynamic>? readAgentYamlFile(File file)
-```
-
-Reads and parses one sidecar, answering `null` for missing, empty, unreadable
-and malformed alike. The four collapse into one result on purpose: to a caller
-about to fall back on its defaults, a file it cannot use and a file that is not
-there are the same file.
 
 ### decodeAgentYamlList
 
@@ -709,7 +714,7 @@ Map<String, dynamic> decodeAgentYaml(String yaml)
 
 Parses a document into a plain map. **Throws** `FormatException` when the root
 is not a mapping — the one function here that throws, which is why
-`readAgentYamlFile` wraps it.
+`AgentSidecarStore.readRoot` wraps it.
 
 ### deepPlainYaml
 
@@ -1033,7 +1038,6 @@ The highest port scanned, inclusive: 19909.
 | `deepPlainYaml` | `Object? deepPlainYaml(Object? node)` | Recursively converts a parsed YAML tree ([YamlMap] / [YamlList] / scalar) into plain Dart collections. |
 | `encodeAgentYaml` | `String encodeAgentYaml(Map<String, dynamic> data)` | Serialises [data] to a YAML document string. |
 | `permissionModeForApproval` | `PermissionMode permissionModeForApproval(ToolApprovalMode mode)` | The SDK permission mode a [ToolApprovalMode] asks for. |
-| `readAgentYamlFile` | `Map<String, dynamic>? readAgentYamlFile(File file)` | Reads and parses the sidecar at [file], or `null` when it is missing, empty, unreadable or malformed. |
 | `specSessionLooksLikeError` | `bool specSessionLooksLikeError(String message)` | True when [message] should be treated as an SDK **session error** under the editor rule: its text contains `session`, `message`, or `msg` (case-insensitive). |
 | `thinkingConfigFor` | `ThinkingConfig? thinkingConfigFor(bool? enabled, {int? budgetTokens})` | The SDK thinking configuration a profile's thinking settings ask for, or `null` when unset. |
 | `yamlEnum` | `T? yamlEnum<T>( Map<String, dynamic> yaml, String key, T Function(String?) fromValue)` | Reads [key] as a string and maps it through [fromValue], or `null` when [key] holds no string. |

@@ -12,10 +12,8 @@
 // that drive it live in `tom_forge_agentic`.
 library;
 
-import 'dart:io';
-
-import 'package:path/path.dart' as p;
 import 'package:tom_vscode_scripting_api/tom_vscode_scripting_api.dart';
+import 'package:tom_file_system/tom_file_system.dart';
 
 import 'agent_sidecar.dart';
 
@@ -239,23 +237,27 @@ final class BridgeChoice {
 /// restored on the next launch.
 ///
 /// Mirrors the editor's other sidecars: a small YAML file written
-/// synchronously on every change. The file lives outside the document so it is
+/// on every change. The file lives outside the document so it is
 /// never part of a `*.docspecs.yaml` save.
-final class BridgeChoiceStore {
-  BridgeChoiceStore(this.file);
-
-  /// The backing YAML file.
-  final File file;
+final class BridgeChoiceStore extends AgentSidecarStore {
+  BridgeChoiceStore({required super.fileSystem, required super.uri});
 
   /// Resolves the sidecar location. Honors `TOM_SPECS_BRIDGE_FILE`; falls back
-  /// to `<cwd>/.tom/bridge_connection.yaml`.
-  factory BridgeChoiceStore.resolveDefault() {
-    final override = Platform.environment['TOM_SPECS_BRIDGE_FILE'];
-    final path = (override != null && override.isNotEmpty)
-        ? override
-        : p.join(Directory.current.path, '.tom', 'bridge_connection.yaml');
-    return BridgeChoiceStore(File(path));
-  }
+  /// to `.tom/bridge_connection.yaml` in the workspace.
+  /// [environment] is the process environment (the host passes it); the
+  /// variable names a path relative to the workspace, or an absolute one.
+  factory BridgeChoiceStore.resolveDefault(
+    TomFileSystem fileSystem, {
+    Map<String, String> environment = const {},
+  }) => BridgeChoiceStore(
+    fileSystem: fileSystem,
+    uri: AgentSidecarStore.locate(
+      fileSystem,
+      environment: environment,
+      variable: 'TOM_SPECS_BRIDGE_FILE',
+      defaultPath: '.tom/bridge_connection.yaml',
+    ),
+  );
 
   /// Loads the persisted choice, or `null` when the file is missing, empty,
   /// unreadable or malformed.
@@ -266,15 +268,15 @@ final class BridgeChoiceStore {
   /// the sidecar most likely to be hand-edited, since it is the file you open
   /// to check which port the editor bound to, so the damage this swallows is
   /// the realistic case rather than the exotic one.
-  BridgeChoice? load() => decodeAgentYamlValue(
-    readAgentYamlFile(file),
+  Future<BridgeChoice?> load() async => decodeAgentYamlValue(
+    await readRoot(),
     key: 'bridge',
     fromYaml: BridgeChoice.fromMap,
     orElse: null,
   );
 
-  /// Persists [choice], creating the parent directory if needed.
-  void save(BridgeChoice choice) {
+  /// Persists [choice], making its folder when it is missing.
+  Future<void> save(BridgeChoice choice) {
     final buffer = StringBuffer()
       ..writeln('# TomSpecs editor — bound VS Code bridge server.')
       ..writeln('# Written by the agent connection picker.')
@@ -282,12 +284,9 @@ final class BridgeChoiceStore {
       ..writeln('bridge:')
       ..writeln('  host: ${choice.host}')
       ..writeln('  port: ${choice.port}');
-    file.parent.createSync(recursive: true);
-    file.writeAsStringSync(buffer.toString());
+    return writeText(buffer.toString());
   }
 
   /// Removes the persisted choice (e.g. on explicit unbind).
-  void clear() {
-    if (file.existsSync()) file.deleteSync();
-  }
+  Future<void> clear() => deleteFile();
 }

@@ -1,3 +1,27 @@
+## 3.0.0
+
+- **Breaking: the agent sidecar stores read and write through a
+  `TomFileSystem`** (`tom_file_system`). All eleven — `AgentProfileStore`,
+  `AgentSettingsStore`, `ChatVariableStore`, `PromptQueueStore`,
+  `PromptTemplateStore`, `QueueTemplateStore`, `ReminderTemplateStore`,
+  `TimedRequestStore`, `PromptTrailStore`, `BridgeChoiceStore`,
+  `SpecSessionStore` — extend the new `AgentSidecarStore` and take
+  `(fileSystem:, uri:)` instead of a `dart:io` `File`; `load()`, `save()` and
+  `clear()` are asynchronous. A store's writes run in the order they were asked
+  for, `settled` completes when they have landed, and a failed write fails its
+  caller's future without stopping the next one. The sidecars therefore live
+  on the local disk, in memory in a test, or on the web, wherever the host's
+  file system is.
+- **Breaking: `resolveDefault(fileSystem, environment:)`** replaces
+  `resolveDefault()`. The host passes its process environment; the
+  `TOM_SPECS_*_FILE` variable names a path relative to the workspace (or an
+  absolute one), else `.tom/<name>.yaml` of the workspace. The package reads no
+  environment and no current directory.
+- `readAgentYamlFile` is removed; its promise (missing, empty, unreadable and
+  malformed all read as no file) is `AgentSidecarStore.readRoot`.
+- The main library's `dart:io` importers drop from 14 to 2
+  (`path_scope_io.dart`, `placeholder_resolver.dart`).
+
 ## 2.0.1
 
 - **`tom_vscode_scripting_api` ^3.0.0.** The constraint follows the scripting

@@ -7,11 +7,11 @@
 // stored session (so a "stale session" error and its fresh retry are scripted).
 
 import 'dart:async';
-import 'dart:io';
 
 import 'package:test/test.dart';
 import 'package:tom_basics/utilities.dart' show TomCancellationSource;
 import 'package:tom_core_agentic/tom_core_agentic.dart';
+import 'package:tom_file_system/tom_file_system.dart';
 import 'package:tom_vscode_scripting_api/tom_vscode_scripting_api.dart';
 
 /// A transport double that emits a scripted message sequence for every started
@@ -136,13 +136,9 @@ Map<String, dynamic> _errorResult(String text) => {
 String? _resumeOf(Map<String, dynamic> params) =>
     (params['options'] as Map?)?['resume'] as String?;
 
-SpecSessionStore _tempStore() {
-  final dir = Directory.systemTemp.createTempSync('tom_specs_session_test');
-  addTearDown(() {
-    if (dir.existsSync()) dir.deleteSync(recursive: true);
-  });
-  return SpecSessionStore(File('${dir.path}/agent_session.yaml'));
-}
+/// A session store over a fresh in-memory workspace.
+SpecSessionStore _tempStore() =>
+    SpecSessionStore.resolveDefault(TomMemoryFileSystem());
 
 void main() {
   group('specSessionLooksLikeError', () {
@@ -159,15 +155,15 @@ void main() {
   });
 
   group('SpecSessionStore', () {
-    test('round-trips a session id and clears it', () {
+    test('round-trips a session id and clears it', () async {
       final store = _tempStore();
-      expect(store.load(), isNull);
+      expect(await store.load(), isNull);
 
-      store.save('sess-123');
-      expect(store.load(), 'sess-123');
+      await store.save('sess-123');
+      expect(await store.load(), 'sess-123');
 
-      store.clear();
-      expect(store.load(), isNull);
+      await store.clear();
+      expect(await store.load(), isNull);
     });
   });
 
@@ -377,7 +373,7 @@ void main() {
       final completed = events.whereType<AgentSendCompleted>().single;
       expect(completed.sessionId, 's-new');
       // The id is persisted so the next send resumes it.
-      expect(store.load(), 's-new');
+      expect(await store.load(), 's-new');
     });
 
     test(
@@ -393,7 +389,8 @@ void main() {
         });
         addTearDown(transport.dispose);
 
-        final store = _tempStore()..save('stale-id');
+        final store = _tempStore();
+        await store.save('stale-id');
         final engine = AgentSendEngine(
           client: AgentSdkClient(transport),
           sessionStore: store,
@@ -413,7 +410,7 @@ void main() {
           's-fresh',
         );
         // The sidecar now holds the fresh id, not the stale one.
-        expect(store.load(), 's-fresh');
+        expect(await store.load(), 's-fresh');
 
         // Two queries: the first resumed the stale id, the second was fresh.
         expect(transport.started, hasLength(2));
@@ -463,7 +460,8 @@ void main() {
       );
       addTearDown(transport.dispose);
 
-      final store = _tempStore()..save('keep-id');
+      final store = _tempStore();
+      await store.save('keep-id');
       final engine = AgentSendEngine(
         client: AgentSdkClient(transport),
         sessionStore: store,
@@ -478,7 +476,7 @@ void main() {
         contains('rate limit'),
       );
       // The stored id is untouched on a non-session failure.
-      expect(store.load(), 'keep-id');
+      expect(await store.load(), 'keep-id');
       expect(transport.started, hasLength(1));
     });
   });

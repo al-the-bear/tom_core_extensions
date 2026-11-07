@@ -28,18 +28,6 @@ import 'package:test/test.dart';
 /// stores are file-backed, and `agent_sdk_session.dart` spawns a
 /// subprocess. Only `placeholder_resolver.dart` is incidental.
 const expectedDirectImporters = <String>{
-  'src/agent/agent_profile_store.dart',
-  'src/agent/agent_send.dart',
-  'src/agent/agent_settings_store.dart',
-  'src/agent/agent_sidecar.dart',
-  'src/agent/bridge_connection.dart',
-  'src/agent/chat_variable_store.dart',
-  'src/agent/prompt_queue_store.dart',
-  'src/agent/prompt_template_store.dart',
-  'src/agent/prompt_trail_store.dart',
-  'src/agent/queue_template_store.dart',
-  'src/agent/reminder_template_store.dart',
-  'src/agent/timed_request_store.dart',
   'src/path_scope_io.dart',
   'src/placeholders/placeholder_resolver.dart',
 };

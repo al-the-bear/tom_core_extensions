@@ -41,7 +41,7 @@ protocol are the parts worth testing, and neither needs a widget tree to run.
 
 | Symbol | Kind | Purpose |
 | ------ | ---- | ------- |
-| `readAgentYamlFile` | function | Reads and parses one sidecar, answering `null` for missing, empty, unreadable and malformed alike |
+| `AgentSidecarStore` | abstract base class | The base of the stores: one sidecar read and written through the workspace's `TomFileSystem`, answering `null` for a missing, empty, unreadable or malformed file |
 | `decodeAgentYamlList` / `decodeAgentYamlValue` | function | Builds models from a parsed sidecar — skipping a bad entry, or falling back for a bad singleton |
 | `AgentProfileStore` | final class | Sidecar of named agent configurations |
 | `AgentSettingsStore` | final class | Sidecar of the single settings mapping |
@@ -98,12 +98,23 @@ protocol are the parts worth testing, and neither needs a widget tree to run.
 
 ## The sidecar stores
 
-Eleven small YAML files, written synchronously on every change, living in the
-spec workspace and deliberately **outside** the document's `*.docspecs.yaml` pass:
-they are editor and transport state, not specification content.
+Eleven small YAML files, written on every change, living in the spec workspace
+and deliberately **outside** the document's `*.docspecs.yaml` pass: they are
+editor and transport state, not specification content.
 
-Each store resolves its own path the same way — an environment variable when it
-is set and non-empty, otherwise a fixed name under `<cwd>/.tom/`:
+Every store is an `AgentSidecarStore`: it reads and writes its file through the
+workspace's `TomFileSystem` (`tom_file_system`) — a `TomLocalFileSystem` of the
+workspace folder in an editor, a `TomMemoryFileSystem` in a test — so the
+package itself touches no disk. `load()` and `save()` are asynchronous; the
+writes of one store run one after the other in the order they were asked for,
+so the file ends at the latest state, and `settled` completes when every write
+asked for has landed. A write that fails fails the future its caller got, and
+the next write still runs.
+
+`resolveDefault(fileSystem, environment: ...)` places each store the same way —
+the path an environment variable names when it is set and non-empty (relative to
+the workspace, or absolute), otherwise a fixed name under `.tom/` of the
+workspace. The host passes its process environment; the package reads none:
 
 | Store | Environment override | Default path |
 | ----- | -------------------- | ------------ |
@@ -119,9 +130,8 @@ is set and non-empty, otherwise a fixed name under `<cwd>/.tom/`:
 | `BridgeChoiceStore` | `TOM_SPECS_BRIDGE_FILE` | `.tom/bridge_connection.yaml` |
 | `SpecSessionStore` | `TOM_SPECS_SESSION_FILE` | `.tom/agent_session.yaml` |
 
-The override is what makes the module testable and what lets one machine run
-two editors over different workspaces; the `<cwd>` fallback is what makes it
-work with no configuration at all. An override that is set but *empty* is
+The override lets one machine run two editors over different workspaces; the
+`.tom/` fallback is what makes it work with no configuration at all. An override that is set but *empty* is
 ignored — the fallback applies — so exporting the variable to the empty string
 does not redirect a store to the current directory.
 
@@ -143,21 +153,20 @@ field each entry is identified by:
 `AgentSettingsStore` holds a single mapping under `settings`,
 `BridgeChoiceStore` a single mapping under `bridge`, and `SpecSessionStore` a
 bare scalar under `sessionId` — the one sidecar with no model behind it, which
-is why it reads the shared loader directly rather than through a decoder.
+is why it reads the parsed file directly rather than through a decoder.
 
 ## How a damaged sidecar degrades
 
 One promise, in one place: **a damaged file costs the user a reset, never a
 crash.** `agent_sidecar.dart` holds it, so "they all degrade the same way" is a
-property of one function rather than a claim about eleven bodies.
+property of one class rather than a claim about eleven bodies.
 
 The promise has two halves, and they answer different damage:
 
-**Parse damage costs the file.** `readAgentYamlFile` answers `null` for four
-cases that a caller about to fall back on its defaults cannot tell apart — the
-file is missing, it is empty, it cannot be read (`FileSystemException`), or it
-does not parse (a `YamlException` is a `FormatException`, which is why two
-catches answer three damage shapes).
+**Parse damage costs the file.** `AgentSidecarStore.readRoot` answers `null`
+for four cases that a caller about to fall back on its defaults cannot tell
+apart — the file is missing, it is empty, it cannot be read (the file system
+throws), or it does not parse (a `YamlException` is a `FormatException`).
 
 **Shape damage costs one entry.** `decodeAgentYamlList` builds the models under
 the payload key and skips an entry that is not a mapping, whose identity field

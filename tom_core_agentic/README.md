@@ -32,12 +32,12 @@ This package uses them and declares none of them; import them from there.
 
 The package as a whole is **not** `dart:io`-free and does not claim to
 be. This section is about the main barrel; `agent_sdk.dart` spawns processes
-by purpose, and `agent_tools.dart` is `dart:io`-free as a whole. 14 files of the main library import `dart:io`, and 4 of the 34 barrel
+by purpose, and `agent_tools.dart` is `dart:io`-free as a whole. 2 files of the main library import `dart:io`, and 4 of the 34 barrel
 exports reach one of them — directly or transitively:
 
 | Coupled barrel export | Reaches | Through |
 |-----------------------|--------:|---------|
-| `src/agent/agent.dart` | 13 | nine file-backed stores, `agent_send.dart`, `agent_sidecar.dart`, `bridge_connection.dart`, and `placeholder_resolver.dart` through the editor placeholder bindings |
+| `src/agent/agent.dart` | 1 | `placeholder_resolver.dart` through the editor placeholder bindings (the sidecar stores read and write through `tom_file_system`'s `TomFileSystem`) |
 | `src/path_scope_io.dart` | 1 | itself — it *is* the `dart:io` half of `PathScope`, by design |
 | `src/placeholders/placeholders.dart` | 1 | `placeholder_resolver.dart` (`Platform.environment` default) |
 | `src/yaml_config_reader.dart` | 1 | `placeholder_resolver.dart`, via `${…}` expansion |
