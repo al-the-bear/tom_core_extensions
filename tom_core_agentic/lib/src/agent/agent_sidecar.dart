@@ -33,10 +33,22 @@ abstract base class AgentSidecarStore {
   /// The sidecar file.
   final Uri uri;
 
-  Future<void> _writes = Future.value();
+  /// The writes asked for and not yet run, in order.
+  final List<Future<void> Function()> _pending = [];
+
+  /// Whether [_drain] is running the writes.
+  bool _draining = false;
+
+  /// Callers of [settled] waiting for the writes to run out.
+  final List<Completer<void>> _settleWaiters = [];
 
   /// Completes when every write asked for so far has landed or failed.
-  Future<void> get settled => _writes;
+  Future<void> get settled {
+    if (!_draining) return Future.value();
+    final waiter = Completer<void>();
+    _settleWaiters.add(waiter);
+    return waiter.future;
+  }
 
   /// Where a store's sidecar lives in [fileSystem]: the path the
   /// [environment] variable [variable] names when it is set (relative to the
@@ -91,19 +103,35 @@ abstract base class AgentSidecarStore {
     if (await fileSystem.exists(uri)) await fileSystem.delete(uri);
   });
 
+  // Why: no future outlives one write. Each caller gets a future made in its
+  // own zone, and the queue is a list rather than a chain of futures, so a
+  // store used from two zones (a widget test's fake-async zone and the real
+  // one) never waits on a future whose zone does not run.
   Future<void> _enqueue(Future<void> Function() write) {
     final done = Completer<void>();
-    // Why: the chain itself never fails, so one failed write does not stop
-    // the next; the failure goes to the caller through [done].
-    _writes = _writes.then((_) async {
+    _pending.add(() async {
       try {
         await write();
         done.complete();
       } on Object catch (error, stack) {
+        // The failure goes to the caller; the next write still runs.
         done.completeError(error, stack);
       }
     });
+    if (!_draining) unawaited(_drain());
     return done.future;
+  }
+
+  Future<void> _drain() async {
+    _draining = true;
+    while (_pending.isNotEmpty) {
+      await _pending.removeAt(0)();
+    }
+    _draining = false;
+    for (final waiter in _settleWaiters) {
+      waiter.complete();
+    }
+    _settleWaiters.clear();
   }
 }
 

@@ -1,3 +1,13 @@
+## 3.0.1
+
+- **A sidecar store made in one zone writes when it is used from another.**
+  3.0.0 chained a store's writes on a future made when the store was; a
+  widget test makes its stores in a fake-async zone and sends in the real one,
+  where awaiting that future never ran. The writes are now a queue, and every
+  future a caller gets is made in its own zone (`agent_sidecar_store_test.dart`
+  AS-1–AS-4: order, a failed write not stopping the next, the zone crossing,
+  the environment override).
+
 ## 3.0.0
 
 - **Breaking: the agent sidecar stores read and write through a

@@ -6,7 +6,7 @@ description: >-
   provider (agent_sdk.dart); and a tool surface for LLM agents with a closed
   registry, an in-process MCP server, consent and an audit trail
   (agent_tools.dart).
-version: 3.0.0
+version: 3.0.1
 repository: https://github.com/al-the-bear/tom_core_extensions
 
 environment:

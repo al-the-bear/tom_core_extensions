@@ -29,7 +29,7 @@ three types with one each.
 
 | Unit | Members | Types | Summary |
 | ---- | ------: | ----: | ------- |
-| `agent` | 342 | 53 | yes |
+| `agent` | 343 | 53 | yes |
 | `isolate_streaming` | 47 | 12 | yes |
 | `placeholders` | 35 | 6 | yes |
 | `bearer_auth` | 5 | 3 | yes, and `doc/bearer_auth.md` |
