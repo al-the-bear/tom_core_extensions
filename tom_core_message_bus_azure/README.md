@@ -158,8 +158,9 @@ dart run example/azure_message_bus_example.dart
 ## Status
 
 Version **0.1.0**. `dart test` runs the offline suites — the codec, the message
-format, the shared access signature, the names and the management API
-(`test/amqp_codec_test.dart`, ZB-U1 to ZB-U10, ZB-U14, ZB-U15), and the
+format, the shared access signature, the names, the management API and the
+failures a bus reports without a broker (`test/amqp_codec_test.dart`, ZB-U1 to
+ZB-U10, ZB-U14 to ZB-U18), and the
 connection and the claims-based exchange against a scripted AMQP peer in the
 same process (`test/amqp_connection_test.dart`, ZB-U11 to ZB-U13); the tests
 tagged `azure` — the bus's conformance suite, authenticated with SASL `PLAIN`

@@ -45,8 +45,9 @@ The first release: the Azure adapter of the Tom message bus, in
 - **Error keys**: `message_bus.azure.connection_string_invalid`,
   `message_bus.azure.management_failed`, `message_bus.azure.publish_failed`,
   `message_bus.azure.consumer_failed`.
-- **Tests**: the offline suites ZB-U1 to ZB-U10, ZB-U14, ZB-U15 (codec,
-  message format, signature, names, management API) and ZB-U11 to ZB-U13 (the
+- **Tests**: the offline suites ZB-U1 to ZB-U10, ZB-U14 to ZB-U18 (codec,
+  message format, signature, names, management API, the error keys raised
+  without a broker) and ZB-U11 to ZB-U13 (the
   connection and the claims-based exchange against a scripted AMQP peer); the
   bus's conformance suite MB-C1 to MB-C20 in both authentication modes, the
   relay test ZB-I1 and the example against the Service Bus emulator, tagged

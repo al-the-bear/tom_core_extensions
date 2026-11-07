@@ -267,7 +267,7 @@ encoding).
 
 | Suite | What it covers |
 | ----- | -------------- |
-| `test/amqp_codec_test.dart` | ZB-U1 to ZB-U10 and ZB-U14, ZB-U15, offline: every primitive type, the compact encodings, nested and large lists and maps, arrays, malformed bytes; the message sections and the outcomes; the shared access signature; subscription and topic names; connection strings; and ZB-U14, ZB-U15: the management API's shared access signature and Entra ID bearer token, and its refusals |
+| `test/amqp_codec_test.dart` | ZB-U1 to ZB-U10 and ZB-U14 to ZB-U18, offline: every primitive type, the compact encodings, nested and large lists and maps, arrays, malformed bytes; the message sections and the outcomes; the shared access signature; subscription and topic names; connection strings, and the one refused without a key; ZB-U14, ZB-U15: the management API's shared access signature and Entra ID bearer token, and its refusals; ZB-U16 to ZB-U18: a closed bus's publish, a send to a port nothing listens on and a management API that cannot be reached, each with its error key |
 | `test/amqp_connection_test.dart` | ZB-U11 to ZB-U13, against a scripted AMQP peer in the same process: SASL `PLAIN`, `open` and `begin`, a send accepted by the peer; a link attached after another was detached, receiving its credit and its deliveries under the peer's handle; ZB-U13, a token put on `$cbs`, accepted and refused |
 | `test/azure_conformance_test.dart` | Tagged `azure`: the bus's conformance suite MB-C1 to MB-C20 twice — authenticated with SASL `PLAIN`, and authorized through claims-based security — and ZB-I1, the bus relay publishing through Service Bus |
 | `test/example_test.dart` | Tagged `azure`: the example runs green |

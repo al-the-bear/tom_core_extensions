@@ -3,12 +3,14 @@
 library;
 
 import 'dart:convert';
+import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:crypto/crypto.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:test/test.dart';
+import 'package:tom_core_message_bus/tom_core_message_bus.dart';
 import 'package:tom_core_message_bus_azure/tom_core_message_bus_azure.dart';
 
 Object? _roundTrip(Object? value) => amqpDecode(amqpEncode(value));
@@ -231,7 +233,13 @@ void main() {
         () => TomServiceBusMessageBus.fromConnectionString(
           'Endpoint=sb://ns.servicebus.windows.net/',
         ),
-        throwsA(isA<Exception>()),
+        throwsA(
+          isA<TomBusException>().having(
+            (e) => e.key,
+            'key',
+            'message_bus.azure.connection_string_invalid',
+          ),
+        ),
       );
       expect(
         TomServiceBusMessageBus.isoDuration(const Duration(seconds: 30)),
@@ -299,6 +307,64 @@ void main() {
           ),
         ),
       );
+    });
+  });
+
+  group('failures without a broker', () {
+    Matcher keyed(String key) =>
+        throwsA(isA<TomBusException>().having((e) => e.key, 'key', key));
+
+    test('ZB-U16: a closed bus refuses to publish', () async {
+      final bus = TomServiceBusMessageBus(
+        host: 'ns.servicebus.windows.net',
+        credential: const TomServiceBusSasKey('Root', 'k'),
+        httpClient: MockClient((_) async => http.Response('', 201)),
+      );
+      await bus.close();
+      await expectLater(
+        bus.publish('orders', {'n': 1}),
+        keyed('message_bus.closed'),
+      );
+    });
+
+    test('ZB-U17: a send that cannot reach the broker is a publish '
+        'failure', () async {
+      // The topic is created; the AMQP port has nothing listening.
+      final unused = await ServerSocket.bind(InternetAddress.loopbackIPv4, 0);
+      final port = unused.port;
+      await unused.close();
+      final bus = TomServiceBusMessageBus(
+        host: '127.0.0.1',
+        credential: const TomServiceBusSasKey('Root', 'k'),
+        amqpPort: port,
+        secure: false,
+        httpClient: MockClient((_) async => http.Response('', 201)),
+      );
+      await expectLater(
+        bus.publish('orders', {'n': 1}),
+        keyed('message_bus.azure.publish_failed'),
+      );
+      await bus.close();
+    });
+
+    test('ZB-U18: a subscription the management API cannot be reached for '
+        'is a consumer failure', () async {
+      final bus = TomServiceBusMessageBus(
+        host: 'ns.servicebus.windows.net',
+        credential: const TomServiceBusSasKey('Root', 'k'),
+        httpClient: MockClient(
+          (_) async => throw http.ClientException('connection refused'),
+        ),
+      );
+      await expectLater(
+        bus.subscribe<Map<String, Object?>>(
+          'orders',
+          group: 'billing',
+          handler: (_) {},
+        ),
+        keyed('message_bus.azure.consumer_failed'),
+      );
+      await bus.close();
     });
   });
 }
