@@ -357,35 +357,31 @@ void main() {
       timeout: const Timeout(Duration(minutes: 2)),
     );
 
-    test(
-      'the credential never reaches the child\'s command line',
-      () async {
-        // The key travels in the environment precisely so it cannot be read out
-        // of the process table by any local process. Asserting on the argument
-        // vector is the cheap, direct way to keep that true.
-        //
-        // A sentinel is used rather than a real key, and it belongs here rather
-        // than in the credentialled group for two reasons. The code path cannot
-        // tell the two apart — whatever string arrives as `apiKey` goes to the
-        // same place — so the sentinel proves the same property; and putting a
-        // *real* key into a machine's process table in order to check that it is
-        // not in the process table is precisely the exposure the rule forbids.
-        // Sitting here, it also runs on every machine that can run the server
-        // instead of only on one that has exported a key.
-        final transport = StandaloneNodeAiTransport(
-          node: llmNodeAt(node),
-          serverScript: script,
-          apiKey: 'sk-ant-hygiene-sentinel-never-a-real-key',
-          startupTimeout: const Duration(seconds: 60),
-        );
-        await transport.connect();
-        addTearDown(transport.close);
+    test('the credential never reaches the child\'s command line', () async {
+      // The key travels in the environment precisely so it cannot be read out
+      // of the process table by any local process. Asserting on the argument
+      // vector is the cheap, direct way to keep that true.
+      //
+      // A sentinel is used rather than a real key, and it belongs here rather
+      // than in the credentialled group for two reasons. The code path cannot
+      // tell the two apart — whatever string arrives as `apiKey` goes to the
+      // same place — so the sentinel proves the same property; and putting a
+      // *real* key into a machine's process table in order to check that it is
+      // not in the process table is precisely the exposure the rule forbids.
+      // Sitting here, it also runs on every machine that can run the server
+      // instead of only on one that has exported a key.
+      final transport = StandaloneNodeAiTransport(
+        node: llmNodeAt(node),
+        serverScript: script,
+        apiKey: 'sk-ant-hygiene-sentinel-never-a-real-key',
+        startupTimeout: const Duration(seconds: 60),
+      );
+      await transport.connect();
+      addTearDown(transport.close);
 
-        final ps = await Process.run('ps', ['-o', 'args=', '-ax']);
-        expect(ps.stdout.toString(), isNot(contains('sk-ant')));
-      },
-      timeout: const Timeout(Duration(minutes: 2)),
-    );
+      final ps = await Process.run('ps', ['-o', 'args=', '-ax']);
+      expect(ps.stdout.toString(), isNot(contains('sk-ant')));
+    }, timeout: const Timeout(Duration(minutes: 2)));
   });
 
   group('standalone (own Node process)', () {
@@ -434,33 +430,29 @@ void main() {
       print('standalone probe: $probe');
     });
 
-    test(
-      'returns a real Anthropic completion',
-      () async {
-        if (_skipWithoutModel(probe)) return;
-        expect(
-          File(script).existsSync(),
-          isTrue,
-          reason:
-              'the standalone server was not found at "$script"; run '
-              '`npm install` in tom_core_agentic/node',
-        );
+    test('returns a real Anthropic completion', () async {
+      if (_skipWithoutModel(probe)) return;
+      expect(
+        File(script).existsSync(),
+        isTrue,
+        reason:
+            'the standalone server was not found at "$script"; run '
+            '`npm install` in tom_core_agentic/node',
+      );
 
-        await _expectRealCompletion(
-          StandaloneNodeAiTransport(
-            node: llmNodeAt(node),
-            serverScript: script,
-            // Null when no key is exported, which is not a hole: the child then
-            // inherits the environment and the SDK authenticates from the ambient
-            // Claude Code login.
-            apiKey: Platform.environment[_keyVar],
-            startupTimeout: const Duration(seconds: 60),
-            onStderr: (line) => printOnFailure('[server] $line'),
-          ),
-        );
-      },
-      timeout: const Timeout(Duration(minutes: 3)),
-    );
+      await _expectRealCompletion(
+        StandaloneNodeAiTransport(
+          node: llmNodeAt(node),
+          serverScript: script,
+          // Null when no key is exported, which is not a hole: the child then
+          // inherits the environment and the SDK authenticates from the ambient
+          // Claude Code login.
+          apiKey: Platform.environment[_keyVar],
+          startupTimeout: const Duration(seconds: 60),
+          onStderr: (line) => printOnFailure('[server] $line'),
+        ),
+      );
+    }, timeout: const Timeout(Duration(minutes: 3)));
   });
 
   group('hosted (VS Code CLI server)', () {
@@ -486,36 +478,28 @@ void main() {
       print('hosted probe: $probe');
     });
 
-    test(
-      'returns a real Anthropic completion',
-      () async {
-        if (_skipWithoutModel(probe)) return;
-        await _expectRealCompletion(
-          HostedCliServerAiTransport(
-            // Optional: pin the scan to one workspace when several VS Code windows
-            // are open, so the test does not talk to whichever answered first.
-            workspaceName: Platform.environment[_workspaceVar],
-          ),
-        );
-      },
-      timeout: const Timeout(Duration(minutes: 3)),
-    );
-
-    test(
-      'the app never learns the hosted credential',
-      () async {
-        // On the hosted path the editor owns the key and the app must not
-        // copy it. The structural proof is that the transport has nowhere to put
-        // one — there is no apiKey to pass.
-        final transport = HostedCliServerAiTransport(
+    test('returns a real Anthropic completion', () async {
+      if (_skipWithoutModel(probe)) return;
+      await _expectRealCompletion(
+        HostedCliServerAiTransport(
+          // Optional: pin the scan to one workspace when several VS Code windows
+          // are open, so the test does not talk to whichever answered first.
           workspaceName: Platform.environment[_workspaceVar],
-        );
-        await transport.connect();
-        addTearDown(transport.close);
-        expect(transport.isConnected, isTrue);
-      },
-      timeout: const Timeout(Duration(minutes: 2)),
-    );
+        ),
+      );
+    }, timeout: const Timeout(Duration(minutes: 3)));
+
+    test('the app never learns the hosted credential', () async {
+      // On the hosted path the editor owns the key and the app must not
+      // copy it. The structural proof is that the transport has nowhere to put
+      // one — there is no apiKey to pass.
+      final transport = HostedCliServerAiTransport(
+        workspaceName: Platform.environment[_workspaceVar],
+      );
+      await transport.connect();
+      addTearDown(transport.close);
+      expect(transport.isConnected, isTrue);
+    }, timeout: const Timeout(Duration(minutes: 2)));
   });
 
   group('hosted discovery with more than one server answering', () {
@@ -585,62 +569,50 @@ void main() {
 
     tearDown(() => second.stop());
 
-    test(
-      'a pin selects by identity, not by port order',
-      () async {
-        final transport = HostedCliServerAiTransport(
-          workspaceName: _secondWindowName,
-        );
-        await transport.connect();
-        addTearDown(transport.close);
+    test('a pin selects by identity, not by port order', () async {
+      final transport = HostedCliServerAiTransport(
+        workspaceName: _secondWindowName,
+      );
+      await transport.connect();
+      addTearDown(transport.close);
 
-        final answer = (await textOf(
-          transport.complete(const AgentSdkCompletionRequest(prompt: 'ping')),
-        ).toList()).join();
+      final answer = (await textOf(
+        transport.complete(const AgentSdkCompletionRequest(prompt: 'ping')),
+      ).toList()).join();
 
-        // The fixture's scripted reply is the evidence: only the second server
-        // could have produced it, so the scan reached it past the real one.
-        expect(answer, contains(_fixtureAnswer));
-        expect(
-          second.requests.any((r) => r['method'] == 'agentSdk.queryVce'),
-          isTrue,
-        );
-      },
-      timeout: const Timeout(Duration(minutes: 2)),
-    );
+      // The fixture's scripted reply is the evidence: only the second server
+      // could have produced it, so the scan reached it past the real one.
+      expect(answer, contains(_fixtureAnswer));
+      expect(
+        second.requests.any((r) => r['method'] == 'agentSdk.queryVce'),
+        isTrue,
+      );
+    }, timeout: const Timeout(Duration(minutes: 2)));
 
-    test(
-      'a pin on the editor still reaches the editor',
-      () async {
-        // The mirror image, and not redundant: it would also pass if the pin were
-        // ignored, so it is asserted together with the case above rather than on
-        // its own. What it rules out is a pin that matches too eagerly.
-        await _expectRealCompletion(
-          HostedCliServerAiTransport(workspaceName: realName),
-        );
-      },
-      timeout: const Timeout(Duration(minutes: 3)),
-    );
+    test('a pin on the editor still reaches the editor', () async {
+      // The mirror image, and not redundant: it would also pass if the pin were
+      // ignored, so it is asserted together with the case above rather than on
+      // its own. What it rules out is a pin that matches too eagerly.
+      await _expectRealCompletion(
+        HostedCliServerAiTransport(workspaceName: realName),
+      );
+    }, timeout: const Timeout(Duration(minutes: 3)));
 
-    test(
-      'an unpinned scan takes the lowest responder',
-      () async {
-        final transport = HostedCliServerAiTransport();
-        await transport.connect();
-        addTearDown(transport.close);
-        // Whatever the editor answers, it is not the fixture's line — and the
-        // fixture was never asked to run a query.
-        final answer = (await textOf(
-          transport.complete(const AgentSdkCompletionRequest(prompt: _prompt)),
-        ).toList()).join();
-        expect(answer, isNot(contains(_fixtureAnswer)));
-        expect(
-          second.requests.any((r) => r['method'] == 'agentSdk.queryVce'),
-          isFalse,
-        );
-      },
-      timeout: const Timeout(Duration(minutes: 3)),
-    );
+    test('an unpinned scan takes the lowest responder', () async {
+      final transport = HostedCliServerAiTransport();
+      await transport.connect();
+      addTearDown(transport.close);
+      // Whatever the editor answers, it is not the fixture's line — and the
+      // fixture was never asked to run a query.
+      final answer = (await textOf(
+        transport.complete(const AgentSdkCompletionRequest(prompt: _prompt)),
+      ).toList()).join();
+      expect(answer, isNot(contains(_fixtureAnswer)));
+      expect(
+        second.requests.any((r) => r['method'] == 'agentSdk.queryVce'),
+        isFalse,
+      );
+    }, timeout: const Timeout(Duration(minutes: 3)));
 
     test(
       'a pin that matches nothing is unreachable, not the first responder',
