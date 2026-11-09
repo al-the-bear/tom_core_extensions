@@ -43,3 +43,13 @@ repository as well, so its packages are held to the same rules as the core's.
 BSD 3-Clause. See [LICENSE](LICENSE). A package that has to be released under
 another licence — one that links GPL code, for example — lives in a repository
 of its own.
+
+## Disclaimer
+
+This software is provided "as is", without warranty of any kind, express or
+implied, including but not limited to the warranties of merchantability and
+fitness for a particular purpose. In no event shall the authors, copyright
+holders or contributors be liable for any claim, damages or other liability
+arising from, out of or in connection with the software or its use. This
+section summarises the warranty and liability disclaimer of the licence;
+the licence text in [LICENSE](LICENSE) governs.
