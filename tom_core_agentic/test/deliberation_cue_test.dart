@@ -5,7 +5,7 @@ void main() {
   group('classifyDeliberationCue', () {
     test('a plain prompt with no cue is normal', () {
       expect(
-        classifyDeliberationCue('how do I configure the bomber?'),
+        classifyDeliberationCue('how do I configure the build server?'),
         DeliberationVerdict.normal,
       );
       expect(

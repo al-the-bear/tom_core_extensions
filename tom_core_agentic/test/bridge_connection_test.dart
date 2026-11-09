@@ -81,8 +81,8 @@ void main() {
 
     test('does not match a genuinely different host', () {
       const bound = BridgeChoice(host: '127.0.0.1', port: 19900);
-      expect(bound.matches(serverOn('10.8.0.9')), isFalse);
-      expect(bound.matches(serverOn('bomber')), isFalse);
+      expect(bound.matches(serverOn('192.0.2.9')), isFalse);
+      expect(bound.matches(serverOn('build-box')), isFalse);
       // Not a loopback address, despite the prefix — a substring test would
       // wrongly accept this one.
       expect(bound.matches(serverOn('127.0.0.1.example.com')), isFalse);

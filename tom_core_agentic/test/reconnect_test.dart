@@ -212,7 +212,7 @@ void main() {
       // remote host must stay distinct or a binding could silently follow a
       // scan onto a different machine.
       final service = _ScriptedScan([
-        [BridgeServer(port: 19900, host: '10.8.0.9', workspace: 'tomspecs')],
+        [BridgeServer(port: 19900, host: '192.0.2.9', workspace: 'tomspecs')],
       ]);
       final result = await _coordinator(
         service.service,
