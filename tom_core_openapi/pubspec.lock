@@ -948,7 +948,7 @@ packages:
       path: "../../reflection/tom_reflection_generator"
       relative: true
     source: path
-    version: "1.9.1"
+    version: "1.9.2"
   tuple:
     dependency: transitive
     description:
