@@ -6,7 +6,7 @@ import 'dart:convert';
 import 'dart:math';
 import 'dart:typed_data';
 
-import 'package:dart_amqp/dart_amqp.dart';
+import 'package:tom_dart_amqp/tom_dart_amqp.dart';
 import 'package:tom_core_kernel/tom_core_kernel.dart';
 import 'package:tom_core_message_bus/tom_core_message_bus.dart';
 

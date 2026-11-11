@@ -35,9 +35,11 @@ persistent message, and a redelivery or a dead letter acknowledges the
 original delivery only once its copy is confirmed. A failure between the two
 repeats the message rather than losing it.
 
-The AMQP client is `dart_amqp`, taken from the fork
-[al-the-bear/tom_dart_amqp](https://github.com/al-the-bear/tom_dart_amqp),
-branch `tom/0.3.1-fixes` (version `0.3.1+tom.1`). The upstream `dart_amqp`
+The AMQP client is [`tom_dart_amqp`](https://pub.dev/packages/tom_dart_amqp),
+the fork of `dart_amqp`
+[al-the-bear/tom_dart_amqp](https://github.com/al-the-bear/tom_dart_amqp)
+(branch `tom/0.3.1-fixes`, version `0.3.1+tom.1`) published under its own
+name, with upstream's API. The upstream `dart_amqp`
 0.3.1 has had no commit since 2024-05-31, and its publisher confirms break
 under load: a confirmation with `multiple = true` removed the wrong sequence
 number while the handler walked the live key view (upstream issue #132), so a
@@ -55,15 +57,9 @@ dependencies:
   tom_core_message_bus_rabbitmq: ^0.1.0
 ```
 
-Dart SDK `^3.10.0`. The package depends on `dart_amqp` by git:
-
-```yaml
-dependencies:
-  dart_amqp:
-    git:
-      url: https://github.com/al-the-bear/tom_dart_amqp
-      ref: tom/0.3.1-fixes
-```
+Dart SDK `^3.10.0`. The AMQP client comes with it, as
+`tom_dart_amqp: ^0.3.1+tom.1`; code building a `Client` itself imports
+`package:tom_dart_amqp/tom_dart_amqp.dart`.
 
 ## Features
 
@@ -144,7 +140,7 @@ dart run example/rabbitmq_message_bus_example.dart
 
 | Dependency | Kind | For |
 | ---------- | ---- | --- |
-| `dart_amqp` | runtime | The AMQP 0-9-1 client, from the fork `al-the-bear/tom_dart_amqp`: the connection, channels, exchanges, queues, consumers, publisher confirms |
+| `tom_dart_amqp` | runtime | The AMQP 0-9-1 client, the fork of `dart_amqp` published as `tom_dart_amqp`: the connection, channels, exchanges, queues, consumers, publisher confirms |
 | `tom_core_message_bus` | runtime | `TomMessageBus`, `TomBusMessage`, `TomBusCodec`, `TomBusTrace`, `tomDispatch`, `tomDeadLetter`, `tomCheckSubscription`, `TomBusException` |
 | `tom_core_kernel` | runtime | The exception base and `tomLog` |
 | `tom_core_server` | dev | `TomBusRelay`, for the relay-through-RabbitMQ test |

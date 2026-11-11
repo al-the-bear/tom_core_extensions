@@ -1,6 +1,6 @@
 # tom_core_secrets
 
-Published on pub.dev as [`tom_core_secrets` 0.1.0](https://pub.dev/packages/tom_core_secrets).
+Published on pub.dev as [`tom_core_secrets` 0.2.0](https://pub.dev/packages/tom_core_secrets).
 
 > **Attribution.** The Tom Framework is developed by Peter Nicolai Alexis Kyaw.
 > These packages are BSD-3-Clause licensed and published on pub.dev.
@@ -31,7 +31,7 @@ Add it from pub.dev:
 ```yaml
 dependencies:
   tom_core_server: ^1.3.0
-  tom_core_secrets: ^0.1.0
+  tom_core_secrets: ^0.2.0
 ```
 
 Dart SDK `^3.10.0`. A server imports the library of the provider it registers.
@@ -498,7 +498,7 @@ the field-encryption side in
 
 ## Status
 
-Version **0.1.0**. `dart test` runs the unit suites, which drive each provider
+Version **0.2.0**. `dart test` runs the unit suites, which drive each provider
 against `MockClient` stand-ins, and the three examples. The tests tagged
 `emulator` run against each provider's emulator and skip themselves when it does
 not answer; `tool/run_aws_emulator_tests.sh`, `tool/run_azure_emulator_tests.sh`

@@ -8,7 +8,7 @@ library;
 import 'dart:io';
 import 'dart:math';
 
-import 'package:dart_amqp/dart_amqp.dart';
+import 'package:tom_dart_amqp/tom_dart_amqp.dart';
 import 'package:test/test.dart';
 import 'package:tom_core_message_bus/tom_core_message_bus.dart';
 import 'package:tom_core_message_bus_rabbitmq/tom_core_message_bus_rabbitmq.dart';

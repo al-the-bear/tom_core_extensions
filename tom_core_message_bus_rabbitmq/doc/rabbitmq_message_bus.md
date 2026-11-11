@@ -40,7 +40,7 @@ final bus = await TomRabbitMqMessageBus.connect(
 ```
 
 The URI is `amqp://user:password@host:port/vhost`; `settingsOf(uri)` turns it
-into `dart_amqp` `ConnectionSettings`:
+into `tom_dart_amqp` `ConnectionSettings`:
 
 | Part | Default | Meaning |
 | ---- | ------- | ------- |
@@ -54,7 +54,7 @@ not answer, or refuses the login, is refused with
 `message_bus.rabbitmq.unreachable`. The URI in the error has its user info
 replaced by `***`.
 
-A connection that needs more than a URI — TLS, other tuning — is a `dart_amqp`
+A connection that needs more than a URI — TLS, other tuning — is a `tom_dart_amqp`
 `Client` made by the caller and handed to the constructor. The bus then leaves
 the connection to the caller unless `ownsClient` is set:
 
@@ -202,9 +202,10 @@ delivery to the group again.
 
 ## The AMQP Client
 
-The bus uses `dart_amqp` from the fork
-[al-the-bear/tom_dart_amqp](https://github.com/al-the-bear/tom_dart_amqp),
-branch `tom/0.3.1-fixes`, version `0.3.1+tom.1`. The upstream package,
+The bus uses [`tom_dart_amqp`](https://pub.dev/packages/tom_dart_amqp), the fork
+[al-the-bear/tom_dart_amqp](https://github.com/al-the-bear/tom_dart_amqp) of
+`dart_amqp` (branch `tom/0.3.1-fixes`, version `0.3.1+tom.1`) published under
+its own name with upstream's API. The upstream package,
 `dart_amqp` 0.3.1, is unmaintained: no commit since 2024-05-31, and submitted
 fixes are unmerged. The fork carries two of them:
 
@@ -221,8 +222,10 @@ fixes are unmerged. The fork carries two of them:
   #133): a Dart `Error` raised while handling a frame is wrapped in a
   `FatalException` that keeps the source error and stack trace.
 
-The dependency is a git dependency in `pubspec.yaml`, pinned by
-`pubspec.lock` to the branch's commit.
+The dependency is `tom_dart_amqp: ^0.3.1+tom.1`, a version on pub.dev, so the
+package itself can be published; its library is
+`package:tom_dart_amqp/tom_dart_amqp.dart`. Both fixes are offered upstream; once
+upstream releases them, the adapter can go back to `dart_amqp`.
 
 ## Publishing from the Bus Relay
 

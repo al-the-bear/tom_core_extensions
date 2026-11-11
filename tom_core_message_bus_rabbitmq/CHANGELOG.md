@@ -6,8 +6,9 @@ The first release: the RabbitMQ adapter of the Tom message bus, in
 `tom_core_extensions`.
 
 - **`TomRabbitMqMessageBus`**: a `TomMessageBus` over a RabbitMQ broker
-  (AMQP 0-9-1), built on `dart_amqp` from the fork `al-the-bear/tom_dart_amqp`,
-  branch `tom/0.3.1-fixes` (`0.3.1+tom.1`). A constructor over a `Client`
+  (AMQP 0-9-1), built on `tom_dart_amqp` 0.3.1+tom.1, the fork of `dart_amqp`
+  (`al-the-bear/tom_dart_amqp`, branch `tom/0.3.1-fixes`) published under its
+  own name. A constructor over a `Client`
   (`namePrefix` `tombus`, `confirmTimeout` 10 seconds, `ownsClient`, `clock`)
   and `connect(uri, ...)`, which owns the connection it opens; `settingsOf`
   reads `amqp://user:password@host:port/vhost` (defaults `guest` / `guest`,

@@ -83,7 +83,7 @@ default.
 
 | Property | Type | Description |
 | -------- | ---- | ----------- |
-| `client` | `Client` | The AMQP connection (`dart_amqp`). |
+| `client` | `Client` | The AMQP connection (`tom_dart_amqp`). |
 | `namePrefix` | `String` | The first part of every exchange and queue name the bus declares. |
 | `confirmTimeout` | `Duration` | How long a publish waits for the broker's confirmation. |
 | `ownsClient` | `bool` | Whether `close` closes `client`. |

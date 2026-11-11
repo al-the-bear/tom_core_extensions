@@ -5,7 +5,7 @@ description: >-
   start and refreshed on rotation. One library per provider: AWS Secrets
   Manager (aws.dart), Azure Key Vault (azure.dart), HashiCorp Vault
   (vault.dart).
-version: 0.1.0
+version: 0.2.0
 
 repository: https://github.com/al-the-bear/tom_core_extensions
 homepage: https://github.com/al-the-bear/tom_core_extensions/tree/main/tom_core_secrets

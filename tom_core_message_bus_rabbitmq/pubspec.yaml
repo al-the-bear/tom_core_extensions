@@ -12,12 +12,10 @@ environment:
   sdk: ^3.10.0
 
 dependencies:
-  # The AMQP 0-9-1 client, from the fork that carries the publisher-confirm and
-  # error-stream fixes the unmaintained upstream (dart_amqp 0.3.1) lacks.
-  dart_amqp:
-    git:
-      url: https://github.com/al-the-bear/tom_dart_amqp
-      ref: tom/0.3.1-fixes
+  # The AMQP 0-9-1 client: the fork of dart_amqp 0.3.1 that carries the
+  # publisher-confirm and error-stream fixes the unmaintained upstream lacks,
+  # published as tom_dart_amqp (al-the-bear/tom_dart_amqp, tom/0.3.1-fixes).
+  tom_dart_amqp: ^0.3.1+tom.1
   # The contract this package implements, the trace helpers and the codec.
   tom_core_message_bus:
     path: ../../core/tom_core_message_bus
