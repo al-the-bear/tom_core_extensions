@@ -315,10 +315,10 @@ eagerly.
 
 | Dependency | Kind | Imported by | For |
 | ---------- | ---- | ----------- | --- |
-| `dart:async` | dart | `agent_send.dart` | `unawaited`, so the cancellation future can be wired to the query's interrupt without the send awaiting it |
-| `dart:io` | dart | 12 of 25 files | The sidecars are files: every store reads and writes one, and `Platform.environment` is where their path overrides come from |
-| `path` | package | 11 of 25 files | Composing a sidecar's path from its root and file name |
+| `dart:async` | dart | `agent_send.dart`, `agent_sidecar.dart` | `unawaited`, so the cancellation future can be wired to the query's interrupt without the send awaiting it; the `Completer`s behind a sidecar store's `settled` |
+| `meta` | package | `agent_sidecar.dart` | `@protected` on the read and write calls `AgentSidecarStore` gives its stores |
 | `tom_basics` | package | `agent_send.dart` | `TomCancellationToken`, the cooperative signal that interrupts an in-flight send |
+| `tom_file_system` | package | 12 of 25 files | `TomFileSystem`, which every sidecar store reads and writes through — the local disk, memory in a test, the web — and which resolves a sidecar's path (`uriOf`) |
 | `tom_vscode_scripting_api` | package | `agent_send.dart`, `bridge_connection.dart` | The VS Code bridge client and its port scan, and the Agent SDK client the send engine streams through |
 | `yaml` | package | `agent_yaml.dart` | Reading a sidecar document |
 | `yaml_edit` | package | `agent_yaml.dart` | Writing one back with its formatting and comments intact |
