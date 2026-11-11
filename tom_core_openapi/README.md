@@ -1,6 +1,6 @@
 # tom_core_openapi
 
-Published on pub.dev as [`tom_core_openapi` 0.1.0](https://pub.dev/packages/tom_core_openapi).
+Published on pub.dev as [`tom_core_openapi` 0.2.0](https://pub.dev/packages/tom_core_openapi).
 
 > **Attribution.** The Tom Framework is developed by Peter Nicolai Alexis Kyaw.
 > These packages are BSD-3-Clause licensed and published on pub.dev.
@@ -36,7 +36,7 @@ Add it from pub.dev, as a **`dev_dependency`** of the server whose document it w
 
 ```yaml
 dev_dependencies:
-  tom_core_openapi: ^0.1.0
+  tom_core_openapi: ^0.2.0
 ```
 
 ```dart
@@ -222,6 +222,6 @@ that calls both running servers through the generated code.
 
 ## Status
 
-Version **0.1.0**. The suite runs with `dart test`; the meta-schema tests need
+Version **0.2.0**. The suite runs with `dart test`; the meta-schema tests need
 `python3` with `jsonschema`. Every document this package writes passes its own
 `TomOpenApiDocumentCheck` before it is returned.
