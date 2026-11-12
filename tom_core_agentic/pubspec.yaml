@@ -25,8 +25,10 @@ dependencies:
   tom_file_system:
     path: ../../basics/tom_file_system
   # The CLI-server wire, its 19900–19909 discovery scan, and the Agent SDK
-  # message mirror.
-  tom_vscode_scripting_api: ^3.0.0
+  # message mirror. ^4.0.0: 4.0 takes tom_todo_model ^2.0.0, which
+  # tom_file_session needs too; 3.0 (tom_todo_model ^1.2.0) kept every app
+  # with both from resolving. This package uses none of the todo types.
+  tom_vscode_scripting_api: ^4.0.0
   yaml: ^3.1.0
   yaml_edit: ^2.2.4
   path: ^1.9.0
