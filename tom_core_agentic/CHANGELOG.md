@@ -1,3 +1,9 @@
+## Unreleased
+
+- Takes `tom_vscode_scripting_api` ^4.0.0, which reads todos with
+  `tom_todo_model` 2.0 (repeated todos), so a package on `tom_todo_model`
+  ^2.0.0 resolves beside this one. Nothing here reads todos.
+
 ## 3.0.1
 
 - **A sidecar store made in one zone writes when it is used from another.**
