@@ -10,7 +10,7 @@ environment:
 
 dependencies:
   path: ^1.9.0
-  tom_build_base: ^2.16.1
+  tom_build_base: ^2.19.1
   tom_core_kernel:
     path: ../../core/tom_core_kernel
   tom_core_server:
