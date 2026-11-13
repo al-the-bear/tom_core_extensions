@@ -1,5 +1,6 @@
 /// Where a test writes its scratch files: `ztmp/` of the workspace this
-/// package is checked out in (the nearest ancestor holding `.tom_metadata`),
+/// package is checked out in (the nearest ancestor holding
+/// `buildkit_master.yaml`, the workspace marker),
 /// or `.dart_tool/scratch/` of the package when it stands alone.
 library;
 
@@ -9,7 +10,7 @@ import 'dart:io';
 Directory scratchDirectory(String name) {
   var dir = Directory.current.absolute;
   while (true) {
-    if (Directory('${dir.path}/.tom_metadata').existsSync()) {
+    if (File('${dir.path}/buildkit_master.yaml').existsSync()) {
       return Directory('${dir.path}/ztmp/tom_core_sync/$name')
         ..createSync(recursive: true);
     }
