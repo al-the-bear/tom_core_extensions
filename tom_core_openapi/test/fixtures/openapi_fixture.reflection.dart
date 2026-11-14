@@ -307,8 +307,8 @@ import 'package:tom_crypto/src/jwt_token.dart' as prefix162;
 import 'package:tom_reflection/src/reflection/mirrors.dart' as prefix163;
 import 'package:web_socket_channel/src/channel.dart' as prefix164;
 
-import 'test/fixtures/twins/twin_a.dart' as prefix165;
-import 'test/fixtures/twins/twin_b.dart' as prefix166;
+import 'twins/twin_a.dart' as prefix165;
+import 'twins/twin_b.dart' as prefix166;
 
 // ignore_for_file: camel_case_types
 // ignore_for_file: implementation_imports
