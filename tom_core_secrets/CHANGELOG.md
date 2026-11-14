@@ -1,5 +1,28 @@
 # Changelog
 
+## 0.3.0
+
+### Added
+
+- **`local.dart`: the Tom Secrets Manager as a secrets provider.**
+  `TomLocalSecretsProvider`, registered as `local`, reads
+  `secret:local:<tsm reference>[#<field>]` from the secrets service on the
+  same machine through `tom_secrets_client`: the path and field joined into
+  one tsm reference, the configured `dimensions`, `wait` and `timeout` sent
+  with it, the value answered as a `TomSecretPayload.field` with the entry's
+  version (`"<modified> <revision>"`). `fromConfiguration` reads
+  `secrets.local` (`clientName`, `dimensions`, `timeoutSeconds`,
+  `waitForUnlock`). Errors: `secrets.fetch.not_found`, `secrets.fetch.failed`
+  (with the kind and reason), `secrets.local.binary_not_text`,
+  `secrets.local.config.malformed`. `example/local_secrets_example.dart` runs
+  against an in-process stand-in for the service.
+
+### Changed
+
+- **`fetch` takes the whole reference** (`tom_core_server` 1.5.0's
+  `TomSecretsProvider.fetch(TomSecretReference reference)`): the AWS, Azure
+  and Vault providers read `reference.path` as before.
+
 ## 0.2.0
 
 ### Added

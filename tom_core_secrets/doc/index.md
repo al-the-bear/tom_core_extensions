@@ -13,6 +13,8 @@ provider library.
 | [api/api_summary_azure.md](api/api_summary_azure.md) | `azure.dart`: Every public type, member and constant, with signatures |
 | [vault_secrets.md](vault_secrets.md) | `vault.dart`: The reference syntax for Vault paths, the configuration keys and their environment fallbacks, the resilient HTTP client and its destination policy, token and AppRole authentication, namespaces, refresh and rotation, the Transit key-encryption key for field encryption (`TomVaultTransitKeyEncryptionKey`), the error keys, and running the emulator suite |
 | [api/api_summary_vault.md](api/api_summary_vault.md) | `vault.dart`: Every public type and member, with signatures |
+| [local_secrets.md](local_secrets.md) | `local.dart`: The reference syntax (a Tom Secrets Manager reference after `secret:local:`), the configuration keys, finding the secrets service, approvals, versions and rotation, the error keys |
+| [api/api_summary_local.md](api/api_summary_local.md) | `local.dart`: Every public type and member, with signatures |
 
 **Elsewhere in the workspace:**
 

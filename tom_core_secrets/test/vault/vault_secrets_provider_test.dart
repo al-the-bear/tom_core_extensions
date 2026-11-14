@@ -78,7 +78,9 @@ void main() {
         });
       }),
     );
-    final payload = await provider.fetch('kv/app');
+    final payload = await provider.fetch(
+      const TomSecretReference('vault', 'kv/app'),
+    );
     expect(seen.url.path, '/prefix/v1/kv/app');
     expect(seen.headers['x-vault-token'], 'tok');
     expect(seen.headers['x-vault-namespace'], 'team-a');
@@ -113,7 +115,9 @@ void main() {
         });
       }),
     );
-    final payload = await provider.fetch('secret/data/x');
+    final payload = await provider.fetch(
+      const TomSecretReference('vault', 'secret/data/x'),
+    );
     expect(logins, 2);
     expect(reads, 2);
     expect(payload.version, '3');
@@ -125,7 +129,10 @@ void main() {
       auth: TomVaultTokenAuth('tok'),
       httpClient: MockClient((_) async => throw http.ClientException('down')),
     );
-    expect(provider.fetch('secret/data/x'), _refused('secrets.fetch.failed'));
+    expect(
+      provider.fetch(const TomSecretReference('vault', 'secret/data/x')),
+      _refused('secrets.fetch.failed'),
+    );
   });
 
   test('an AppRole login answered without a token is refused by name', () {
@@ -137,7 +144,7 @@ void main() {
       ),
     );
     expect(
-      provider.fetch('secret/data/app'),
+      provider.fetch(const TomSecretReference('vault', 'secret/data/app')),
       throwsA(
         isA<TomSecretsException>().having(
           (e) => e.key,

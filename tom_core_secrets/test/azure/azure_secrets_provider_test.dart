@@ -94,7 +94,9 @@ void main() {
             });
           }),
         );
-        final payload = await provider.fetch('db');
+        final payload = await provider.fetch(
+          const TomSecretReference('azure', 'db'),
+        );
         expect(seen.url.path, '/secrets/db');
         expect(seen.url.queryParameters['api-version'], '7.4');
         expect(seen.headers['authorization'], 'Bearer tok');
@@ -116,7 +118,10 @@ void main() {
           credential: TomAzureStaticTokenCredential('tok'),
           httpClient: MockClient((_) async => _json({}, status)),
         );
-        await expectLater(provider.fetch('db'), _refused(key));
+        await expectLater(
+          provider.fetch(const TomSecretReference('azure', 'db')),
+          _refused(key),
+        );
       }
     });
 
@@ -144,7 +149,10 @@ void main() {
               : _json({'value': 'v', 'id': '${_vault}secrets/db/1'});
         }),
       );
-      expect((await provider.fetch('db')).data, 'v');
+      expect(
+        (await provider.fetch(const TomSecretReference('azure', 'db'))).data,
+        'v',
+      );
       expect(tokensSeen, ['Bearer tok-1', 'Bearer tok-2']);
     });
   });

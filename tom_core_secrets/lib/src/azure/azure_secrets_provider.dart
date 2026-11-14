@@ -319,7 +319,8 @@ class TomAzureKeyVaultSecretsProvider implements TomSecretsProvider {
   final http.Client _http;
 
   @override
-  Future<TomSecretPayload> fetch(String path) async {
+  Future<TomSecretPayload> fetch(TomSecretReference reference) async {
+    final path = reference.path;
     final body = await call('GET', 'secrets/$path', path: path);
     final value = body['value'];
     if (value is! String) {

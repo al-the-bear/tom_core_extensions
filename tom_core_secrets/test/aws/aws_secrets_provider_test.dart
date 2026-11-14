@@ -87,7 +87,9 @@ void main() {
         );
       }),
     );
-    final payload = await provider.fetch('prod/app');
+    final payload = await provider.fetch(
+      const TomSecretReference('aws', 'prod/app'),
+    );
     expect(seen.method, 'POST');
     expect(seen.headers['x-amz-target'], 'secretsmanager.GetSecretValue');
     expect(jsonDecode(seen.body), {'SecretId': 'prod/app'});
@@ -110,11 +112,17 @@ void main() {
       ),
     );
     expect(
-      answering(400, 'ResourceNotFoundException').fetch('x'),
+      answering(
+        400,
+        'ResourceNotFoundException',
+      ).fetch(const TomSecretReference('aws', 'x')),
       _refused('secrets.fetch.not_found'),
     );
     expect(
-      answering(400, 'AccessDeniedException').fetch('x'),
+      answering(
+        400,
+        'AccessDeniedException',
+      ).fetch(const TomSecretReference('aws', 'x')),
       _refused('secrets.fetch.failed'),
     );
   });
@@ -130,6 +138,9 @@ void main() {
         ),
       ),
     );
-    expect(provider.fetch('x'), _refused('secrets.aws.binary_not_text'));
+    expect(
+      provider.fetch(const TomSecretReference('aws', 'x')),
+      _refused('secrets.aws.binary_not_text'),
+    );
   });
 }

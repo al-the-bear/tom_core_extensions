@@ -198,7 +198,8 @@ class TomVaultSecretsProvider implements TomSecretsProvider {
   final http.Client _http;
 
   @override
-  Future<TomSecretPayload> fetch(String path) async {
+  Future<TomSecretPayload> fetch(TomSecretReference reference) async {
+    final path = reference.path;
     final body = await call('GET', path);
     final data = body['data'];
     if (data is! Map) {

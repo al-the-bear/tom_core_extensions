@@ -1,11 +1,11 @@
 # tom_core_secrets
 
-Published on pub.dev as [`tom_core_secrets` 0.2.0](https://pub.dev/packages/tom_core_secrets).
+Published on pub.dev as [`tom_core_secrets` 0.3.0](https://pub.dev/packages/tom_core_secrets).
 
 > **Attribution.** The Tom Framework is developed by Peter Nicolai Alexis Kyaw.
 > These packages are BSD-3-Clause licensed and published on pub.dev.
 
-Cloud secret stores as secrets providers for Tom servers — configuration values
+Secret stores as secrets providers for Tom servers — configuration values
 written as `secret:<provider>:<path>#<field>` references, resolved at boot and
 refreshed on rotation. One library per provider:
 
@@ -14,10 +14,11 @@ refreshed on rotation. One library per provider:
 | `package:tom_core_secrets/aws.dart` | AWS Secrets Manager — `TomAwsSecretsProvider` | `aws` |
 | `package:tom_core_secrets/azure.dart` | Azure Key Vault — `TomAzureKeyVaultSecretsProvider` | `azure` |
 | `package:tom_core_secrets/vault.dart` | HashiCorp Vault — `TomVaultSecretsProvider` | `vault` |
-| `package:tom_core_secrets/tom_core_secrets.dart` | all three | — |
+| `package:tom_core_secrets/local.dart` | the Tom Secrets Manager — `TomLocalSecretsProvider` | `local` |
+| `package:tom_core_secrets/tom_core_secrets.dart` | all four | — |
 
-Each implements `tom_core_server`'s `TomSecretsProvider`. Each library also
-offers a key held by its service — an AWS KMS key, a Vault Transit key, a Key
+Each implements `tom_core_server`'s `TomSecretsProvider`. Each cloud library
+also offers a key held by its service — an AWS KMS key, a Vault Transit key, a Key
 Vault key — as a key-encryption key for `tom_core_server`'s field-level
 encryption; see [Key-encryption keys for field
 encryption](#key-encryption-keys-for-field-encryption). The device keychain a
@@ -30,8 +31,8 @@ Add it from pub.dev:
 
 ```yaml
 dependencies:
-  tom_core_server: ^1.3.0
-  tom_core_secrets: ^0.2.0
+  tom_core_server: ^1.5.0
+  tom_core_secrets: ^0.3.0
 ```
 
 Dart SDK `^3.10.0`. A server imports the library of the provider it registers.
@@ -435,6 +436,98 @@ key, so a boot that wants it at load applies it first — see
 The AWS and Azure providers are [`aws.dart`](#aws-secrets-manager-awsdart)
 and [`azure.dart`](#azure-key-vault-azuredart).
 
+## The Tom Secrets Manager (`local.dart`)
+
+### Overview
+
+The Tom Secrets Manager keeps a machine's secrets in KDBX vaults and serves
+them to the processes on that machine through its **secrets service**. This
+library is the provider for it: `TomLocalSecretsProvider`, registered as
+`local`, so a configuration value reads a secret from the service on the same
+machine:
+
+```yaml
+databasePassword: "secret:local:[env:prod]db.main"
+databaseUser: "secret:local:[env:prod]db.main#UserName"
+```
+
+What follows `secret:local:` is a Tom Secrets Manager reference as `tsm`
+writes it — a key (`telegram.bot_token`), a path (`fleet/Cloud/AWS/root`), the
+qualifiers in front — and `#<field>` names a field of the entry, `Password`
+when none is named. The colons inside the brackets are harmless: a reference
+splits provider from path at the first colon only. The provider joins path and
+field again and asks the service for exactly that field; the service resolves
+the reference (store, overlays, the host's dimensions) and decides, by the
+approvals it keeps, whether this process may read it. It talks to the service
+with `tom_secrets_client`; there is no KDBX code in this package.
+
+### Features
+
+| Type | What it does |
+| ---- | ------------ |
+| `TomLocalSecretsProvider` | The `TomSecretsProvider` over the secrets service: `fetch` sends `get` for the reference's field with the configured dimensions, waits for an unlock or an approval when asked, and answers the value with the entry's version (its last modification and the store revision) as the payload version, so a rotated secret reaches a watcher on refresh. `fromConfiguration` builds one from `secrets.local`. `close` closes the connection. |
+
+### Quick start
+
+```dart
+import 'package:tom_core_secrets/local.dart';
+import 'package:tom_core_server/tom_core_server.dart';
+
+Future<void> main(List<String> args) async {
+  TomSecrets.register(TomLocalSecretsProvider.fromConfiguration());
+  await TomSecrets.load(TomBaseServerConfiguration.collectSources(args));
+  print(TomSecrets.current('secret:local:[env:prod]db.main#UserName'));
+}
+```
+
+The first request of a new program goes to approval in the Tom Secrets
+Manager (the desktop app, or `tsm approve` on a headless host); afterwards the
+service answers it from the grant.
+
+### Example
+
+| Example | Demonstrates |
+| ------- | ------------ |
+| [`example/local_secrets_example.dart`](example/local_secrets_example.dart) | Building the provider from configuration, loading two fields of one entry, a rotation reaching a watcher on refresh, and the version kept with the value — against an in-process stand-in for the secrets service, so it runs anywhere |
+
+```bash
+dart run example/local_secrets_example.dart
+```
+
+`test/local/example_test.dart` runs it and requires a clean exit.
+
+### Configuration
+
+`TomLocalSecretsProvider.fromConfiguration` reads the `secrets.local` key;
+every setting is optional:
+
+| Setting | Meaning |
+| ------- | ------- |
+| `clientName` | The name shown in the approval prompt (default the executable's name). Shown, never trusted: the service identifies the process itself. |
+| `dimensions` | Dimension values sent with every request, for example `{env: prod}` for the deployment. |
+| `timeoutSeconds` | How long a request may wait for an unlock or an approval; the service caps it. |
+| `waitForUnlock` | `false` answers a locked service at once (`secrets.fetch.failed`, kind `locked`) instead of waiting. Default `true`. |
+
+The service is found in the runtime directory of the machine's user:
+`TSM_RUNTIME_DIR` when set (containers, tests), else `$XDG_RUNTIME_DIR/tsm` on
+Linux, `$TMPDIR/tsm` on macOS, `%LOCALAPPDATA%\TomSecretsManager\run` on
+Windows.
+
+### Limits
+
+- **One machine.** The provider reads the service of the machine the server
+  runs on; a server elsewhere uses a cloud store.
+- **Text only.** A binary value is refused (`secrets.local.binary_not_text`).
+- **One request per field.** Each reference is fetched on its own, because the
+  service answers one field per `get`.
+
+### Further documentation
+
+| Document | Covers |
+| -------- | ------ |
+| [doc/local_secrets.md](doc/local_secrets.md) | The reference syntax, configuration, approvals, versions and rotation, the error keys |
+| [doc/api/api_summary_local.md](doc/api/api_summary_local.md) | Every public type and member |
+
 ## Key-encryption keys for field encryption
 
 `tom_core_server`'s field-level encryption keeps its data keys wrapped under a
@@ -494,12 +587,14 @@ the field-encryption side in
 | `tom_core_kernel` | runtime | the framework base the server builds on |
 | `http` | runtime | the Secrets Manager, KMS, Key Vault and Vault HTTP APIs |
 | `crypto` | runtime | SHA-256 and HMAC for SigV4 (`aws.dart`) |
+| `tom_secrets_client` | runtime | the Tom Secrets Manager's client protocol (`local.dart`); BSD-3, it reaches no KDBX |
 | `test`, `lints` | dev | the suites |
 
 ## Status
 
-Version **0.2.0**. `dart test` runs the unit suites, which drive each provider
-against `MockClient` stand-ins, and the three examples. The tests tagged
+Version **0.3.0**. `dart test` runs the unit suites, which drive each cloud
+provider against `MockClient` stand-ins and the `local` provider against an
+in-process stand-in for the secrets service, and the four examples. The tests tagged
 `emulator` run against each provider's emulator and skip themselves when it does
 not answer; `tool/run_aws_emulator_tests.sh`, `tool/run_azure_emulator_tests.sh`
 and `tool/run_vault_emulator_tests.sh` start one in Docker, run that provider's

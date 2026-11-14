@@ -188,7 +188,7 @@ factory TomVaultSecretsProvider.fromConfiguration({
 
 | Method | Signature | Description |
 | ------ | --------- | ----------- |
-| `fetch` | `Future<TomSecretPayload> fetch(String path)` | Reads `GET /v1/<path>`. A KV version 2 answer yields its inner `data` map with `metadata.version` as the payload version; any other answer its `data` map. Throws `secrets.fetch.not_found` on `404`, `secrets.fetch.failed` on any other failure or an answer without `data`. |
+| `fetch` | `Future<TomSecretPayload> fetch(TomSecretReference reference)` | The whole secret at the reference's path (`path` below); Reads `GET /v1/<path>`. A KV version 2 answer yields its inner `data` map with `metadata.version` as the payload version; any other answer its `data` map. Throws `secrets.fetch.not_found` on `404`, `secrets.fetch.failed` on any other failure or an answer without `data`. |
 | `call` | `Future<Map<String, Object?>> call(String method, String path, {Map<String, Object?>? body, bool authenticated = true})` | Calls Vault at `/v1/<path>` and answers the decoded body (`{}` for an empty one). Sends the namespace header when set and, when `authenticated`, the token from `auth`; retries once after a `403` on an authenticated call with a fresh token. Public so an auth method logs in through the same client. |
 | `close` | `Future<void> close()` | Closes the HTTP client. |
 

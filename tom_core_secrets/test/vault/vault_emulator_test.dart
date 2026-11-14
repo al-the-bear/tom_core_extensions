@@ -70,7 +70,9 @@ void main() async {
     );
 
     test('reads a field of a KV version 2 entry, with its version', () async {
-      final payload = await provider().fetch('secret/data/billing');
+      final payload = await provider().fetch(
+        const TomSecretReference('vault', 'secret/data/billing'),
+      );
       expect((payload.data as Map)['jwt'], isNotEmpty);
       expect(payload.version, isNotNull);
     });
@@ -111,7 +113,9 @@ void main() async {
         'options': {'version': '1'},
       }).catchError((_) => <String, Object?>{});
       await _admin('POST', 'kv1/app', {'password': 'v1-secret'});
-      final payload = await provider().fetch('kv1/app');
+      final payload = await provider().fetch(
+        const TomSecretReference('vault', 'kv1/app'),
+      );
       expect(
         payload.valueOf(
           const TomSecretReference('vault', 'kv1/app', 'password'),
@@ -122,7 +126,9 @@ void main() async {
 
     test('a path Vault does not hold is not_found', () {
       expect(
-        provider().fetch('secret/data/does-not-exist'),
+        provider().fetch(
+          const TomSecretReference('vault', 'secret/data/does-not-exist'),
+        ),
         throwsA(
           isA<TomSecretsException>().having(
             (e) => e.key,
@@ -165,7 +171,9 @@ void main() async {
         address: _address,
         auth: TomVaultAppRoleAuth(roleId: roleId, secretId: secretId),
       );
-      final payload = await provider.fetch('secret/data/billing');
+      final payload = await provider.fetch(
+        const TomSecretReference('vault', 'secret/data/billing'),
+      );
       expect((payload.data as Map).keys, containsAll(['jwt', 'db']));
     });
 
@@ -175,7 +183,9 @@ void main() async {
         auth: TomVaultAppRoleAuth(roleId: roleId, secretId: secretId),
       );
       expect(
-        provider.fetch('secret/data/rotating'),
+        provider.fetch(
+          const TomSecretReference('vault', 'secret/data/rotating'),
+        ),
         throwsA(
           isA<TomSecretsException>().having(
             (e) => e.key,
@@ -192,7 +202,9 @@ void main() async {
         auth: TomVaultAppRoleAuth(roleId: roleId, secretId: 'wrong'),
       );
       expect(
-        provider.fetch('secret/data/billing'),
+        provider.fetch(
+          const TomSecretReference('vault', 'secret/data/billing'),
+        ),
         throwsA(isA<TomSecretsException>()),
       );
     });

@@ -82,7 +82,9 @@ void main() async {
   tearDown(TomSecrets.reset);
 
   test('reads a plain secret with a managed-identity token', () async {
-    final payload = await _provider().fetch('api-token');
+    final payload = await _provider().fetch(
+      const TomSecretReference('azure', 'api-token'),
+    );
     expect(payload.data, 'plain-token');
     expect(payload.version, isNotEmpty);
   }, skip: skip);
@@ -118,7 +120,7 @@ void main() async {
 
   test('a secret the vault does not hold is not_found', () {
     expect(
-      _provider().fetch('does-not-exist'),
+      _provider().fetch(const TomSecretReference('azure', 'does-not-exist')),
       _refused('secrets.fetch.not_found'),
     );
   }, skip: skip);
@@ -131,6 +133,9 @@ void main() async {
         endpoint: _identity.resolve('/no-such-endpoint'),
       ),
     );
-    expect(provider.fetch('api-token'), _refused('secrets.azure.token_failed'));
+    expect(
+      provider.fetch(const TomSecretReference('azure', 'api-token')),
+      _refused('secrets.azure.token_failed'),
+    );
   }, skip: skip);
 }

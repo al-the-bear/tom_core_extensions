@@ -242,7 +242,7 @@ factory TomAzureKeyVaultSecretsProvider.fromConfiguration({
 
 | Method | Signature | Description |
 | ------ | --------- | ----------- |
-| `fetch` | `Future<TomSecretPayload> fetch(String path)` | Reads `secrets/<path>` — a name, or `name/version` — and answers its `value`, with the last segment of its `id` as the payload version. Throws `secrets.fetch.failed` for an answer without a value. |
+| `fetch` | `Future<TomSecretPayload> fetch(TomSecretReference reference)` | The whole secret at the reference's path (`path` below); Reads `secrets/<path>` — a name, or `name/version` — and answers its `value`, with the last segment of its `id` as the payload version. Throws `secrets.fetch.failed` for an answer without a value. |
 | `call` | `Future<Map<String, Object?>> call(String method, String resource, {Map<String, Object?>? body, String? path})` | Calls the vault at `resource` (relative to `vaultUri`, with `api-version`) with the bearer token and answers the decoded body. After a `401` it invalidates the token and retries once. Throws `secrets.fetch.not_found` on `404`, `secrets.fetch.failed` for an unreachable vault or any other status `>= 300`; `path` names the secret in a failure. Public so a test or a tool sets secrets through the same client. |
 | `close` | `Future<void> close()` | Closes the HTTP client. |
 

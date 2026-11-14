@@ -106,7 +106,7 @@ factory TomAwsSecretsProvider.fromConfiguration({
 
 | Method | Signature | Description |
 | ------ | --------- | ----------- |
-| `fetch` | `Future<TomSecretPayload> fetch(String path)` | `GetSecretValue` for the secret id `path`: the `SecretString`, else the `SecretBinary` decoded as UTF-8, with the `VersionId` as the payload version. Throws `secrets.aws.binary_not_text` for a binary that is not text, `secrets.fetch.failed` for an answer with neither. |
+| `fetch` | `Future<TomSecretPayload> fetch(TomSecretReference reference)` | The whole secret at the reference's path (`path` below); `GetSecretValue` for the secret id `path`: the `SecretString`, else the `SecretBinary` decoded as UTF-8, with the `VersionId` as the payload version. Throws `secrets.aws.binary_not_text` for a binary that is not text, `secrets.fetch.failed` for an answer with neither. |
 | `call` | `Future<Map<String, Object?>> call(String action, Map<String, Object?> request, {String? path})` | Calls the Secrets Manager action `action` with `request`, signed with SigV4, and answers the decoded body. `path` names the secret in a failure. Throws `secrets.fetch.not_found` for a `ResourceNotFoundException`, `secrets.fetch.failed` for an unreachable endpoint or any other status `>= 300`, carrying AWS's error type and message. Public so a test or a tool administers secrets through the same signed client. |
 | `close` | `Future<void> close()` | Closes the HTTP client. |
 

@@ -119,7 +119,8 @@ class TomAwsSecretsProvider implements TomSecretsProvider {
   final DateTime Function() _clock;
 
   @override
-  Future<TomSecretPayload> fetch(String path) async {
+  Future<TomSecretPayload> fetch(TomSecretReference reference) async {
+    final path = reference.path;
     final body = await call('GetSecretValue', {'SecretId': path}, path: path);
     final string = body['SecretString'];
     final binary = body['SecretBinary'];

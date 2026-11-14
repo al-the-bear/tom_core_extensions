@@ -70,7 +70,9 @@ void main() async {
   tearDown(TomSecrets.reset);
 
   test('reads a plain secret, with its version', () async {
-    final payload = await _provider().fetch('prod/token');
+    final payload = await _provider().fetch(
+      const TomSecretReference('aws', 'prod/token'),
+    );
     expect(payload.data, 'plain-token');
     expect(payload.version, isNotNull);
   }, skip: skip);
@@ -86,7 +88,12 @@ void main() async {
   }, skip: skip);
 
   test('reads a binary secret that is text', () async {
-    expect((await _provider().fetch('prod/binary')).data, 'binary-text');
+    expect(
+      (await _provider().fetch(
+        const TomSecretReference('aws', 'prod/binary'),
+      )).data,
+      'binary-text',
+    );
   }, skip: skip);
 
   test('a rotated secret reaches the watcher on refresh', () async {
@@ -106,7 +113,7 @@ void main() async {
 
   test('a secret Secrets Manager does not hold is not_found', () {
     expect(
-      _provider().fetch('prod/does-not-exist'),
+      _provider().fetch(const TomSecretReference('aws', 'prod/does-not-exist')),
       throwsA(
         isA<TomSecretsException>().having(
           (e) => e.key,
