@@ -7,6 +7,7 @@ provider library.
 
 | Document | Covers |
 | -------- | ------ |
+| [api/api_summary_index.md](api/api_summary_index.md) | The index of the four API summaries: every public type and constant by library, and alphabetically |
 | [aws_secrets.md](aws_secrets.md) | `aws.dart`: The reference syntax for secret names and ARNs, the configuration keys and their environment fallbacks, the resilient HTTP client and its destination policy, credentials and roles, request signing, refresh and rotation, the KMS key-encryption key for field encryption (`TomAwsKmsKeyEncryptionKey`), the error keys, and running the emulator suite |
 | [api/api_summary_aws.md](api/api_summary_aws.md) | `aws.dart`: Every public type and member, with signatures |
 | [azure_secrets.md](azure_secrets.md) | `azure.dart`: The reference syntax for secret names and versions, the configuration keys and their environment fallbacks, the resilient HTTP client and its destination policies, the three credentials and token caching, refresh and rotation, the Key Vault key-encryption key for field encryption (`TomAzureKeyVaultKeyEncryptionKey`), the error keys, and running the emulator suite |

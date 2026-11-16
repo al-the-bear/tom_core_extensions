@@ -1,19 +1,21 @@
-/// Holds every `doc/api/api_summary_<unit>.md` to the surface its unit exports.
+/// Holds every `doc/api/api_summary_<name>.md` to the surface it mirrors, and
+/// asks that every part of the package's public API has one.
 ///
 /// An API summary is worth reading only while it is complete. An incomplete one
 /// is worse than none, because a reader takes a symbol's absence for the symbol
-/// not existing — and that costs most in the units big enough to need a mirror,
-/// where the alternative is reading every file.
+/// not existing.
 ///
 /// Everything below is **derived**: the set of summaries from `doc/api/`, and
-/// each one's required symbols from `lib/src/<unit>/<unit>.dart`. No unit name
-/// and no symbol name is written out here, so a summary added tomorrow is
-/// covered tomorrow, and the test cannot go stale in the same direction as the
-/// documents it guards.
+/// each one's required symbols from what it mirrors — a unit's barrel
+/// `lib/src/<unit>/<unit>.dart`, a public library `lib/<name>.dart` with its
+/// `lib/<name>_*.dart` siblings, or the files the main barrel exports straight
+/// from `lib/src/` (the `utilities` summary). No unit name and no symbol name
+/// is written out here, so a summary added tomorrow is covered tomorrow, and
+/// the test cannot go stale in the same direction as the documents it guards.
 ///
-/// A prose page under `doc/` is covered only where it *is* the mirror — the
-/// `## Overview` table of a unit too small to earn a summary. The rest of the
-/// page explains behaviour and is free to omit a symbol.
+/// A prose page under `doc/` is covered only where it is a mirror too — the
+/// `## Overview` table of a small unit. The rest of the page explains
+/// behaviour and is free to omit a symbol.
 library;
 
 import 'dart:io';
@@ -41,7 +43,7 @@ final _topLevelFunction = RegExp(
 
 /// A public top-level constant.
 final _topLevelConst = RegExp(
-  r'^const\s+(?:[\w<>,\s?]+\s+)?(\w+)\s*=',
+  r'^const\s+(?:[\w<>,\s?()]+\s+)?(\w+)\s*=',
   multiLine: true,
 );
 
@@ -53,6 +55,20 @@ final _staticMember = RegExp(
 );
 
 final _export = RegExp(r"^export\s+'([^']+)'", multiLine: true);
+
+/// An export that hides names: `export 'x.dart' hide main, other;`.
+final _exportHide = RegExp(
+  r"^export\s+'[^']+'\s+hide\s+([\w\s,]+);",
+  multiLine: true,
+);
+
+/// The names [sources] hide on their exports: declared in an exported file,
+/// and still not part of the library's API (a script's `main`).
+Set<String> _hidden(List<String> sources) => {
+  for (final source in sources)
+    for (final m in _exportHide.allMatches(source))
+      ...m.group(1)!.split(',').map((n) => n.trim()).where((n) => n.isNotEmpty),
+};
 
 /// A `### Name` heading in the summary.
 final _heading = RegExp(r'^###\s+(\w+)', multiLine: true);
@@ -83,15 +99,66 @@ Map<String, File> _summaries() {
 ///
 /// The barrel is included because a unit may declare a symbol in it rather
 /// than beneath it; omitting it would make the barrel a blind spot.
-List<String> _exportedSources(String unit) {
-  final dir = 'lib/src/$unit';
-  final barrel = File('$dir/$unit.dart').readAsStringSync();
-  final sources = <String>[barrel];
-  for (final match in _export.allMatches(barrel)) {
-    final library = File('$dir/${match.group(1)}');
+List<String> _exportedSources(String unit) =>
+    _barrelSources(File('lib/src/$unit/$unit.dart'));
+
+/// [barrel]'s source plus every library it re-exports by a relative path.
+List<String> _barrelSources(File barrel, {bool Function(String)? where}) {
+  final text = barrel.readAsStringSync();
+  final sources = <String>[text];
+  for (final match in _export.allMatches(text)) {
+    final target = match.group(1)!;
+    if (where != null && !where(target)) continue;
+    final library = File('${barrel.parent.path}/$target');
     if (library.existsSync()) sources.add(library.readAsStringSync());
   }
   return sources;
+}
+
+/// The public libraries under `lib/` other than the package's main barrel,
+/// grouped by the summary that mirrors them: `lib/<name>.dart` and its
+/// `lib/<name>_*.dart` siblings (`agent_sdk`, `agent_sdk_testing`,
+/// `agent_sdk_live_probe` are one summary).
+Map<String, List<File>> _libraries() {
+  final files = Directory('lib').listSync().whereType<File>().where(
+    (f) => f.path.endsWith('.dart') && !f.path.endsWith('/$_mainBarrel.dart'),
+  );
+  final names = [
+    for (final f in files) f.uri.pathSegments.last.replaceAll('.dart', ''),
+  ]..sort();
+  final out = <String, List<File>>{};
+  for (final name in names) {
+    final owner = names.firstWhere(
+      (n) => name == n || name.startsWith('${n}_'),
+    );
+    out.putIfAbsent(owner, () => []).add(File('lib/$name.dart'));
+  }
+  return out;
+}
+
+/// The package's main barrel, `lib/tom_core_agentic.dart`.
+const _mainBarrel = 'tom_core_agentic';
+
+/// The summary of the files the main barrel exports straight from `lib/src/`,
+/// outside any unit: the small helpers.
+const _utilities = 'utilities';
+
+/// The sources the summary named [name] mirrors: a unit's barrel, a public
+/// library (with its siblings), or the main barrel's own `lib/src/` files.
+/// Null when [name] is none of them.
+List<String>? _summarySources(String name) {
+  if (File('lib/src/$name/$name.dart').existsSync()) {
+    return _exportedSources(name);
+  }
+  final library = _libraries()[name];
+  if (library != null) return [for (final f in library) ..._barrelSources(f)];
+  if (name == _utilities) {
+    return _barrelSources(
+      File('lib/$_mainBarrel.dart'),
+      where: (target) => RegExp(r'^src/[^/]+\.dart$').hasMatch(target),
+    );
+  }
+  return null;
 }
 
 Set<String> _publicNames(List<String> sources, RegExp pattern) => sources
@@ -134,24 +201,32 @@ void main() {
     final summaryFile = entry.value;
 
     group('the $unit API summary mirrors what its barrel exports', () {
-      final barrel = File('lib/src/$unit/$unit.dart');
+      final found = _summarySources(unit);
 
-      test('the unit exists and its barrel does', () {
+      test('it summarises a unit, a public library or the utilities', () {
         expect(
-          barrel.existsSync(),
-          isTrue,
+          found,
+          isNotNull,
           reason:
-              '${summaryFile.path} claims to summarise lib/src/$unit/, whose '
-              'barrel is not there',
+              '${summaryFile.path} names no unit (lib/src/$unit/$unit.dart), '
+              'no public library (lib/$unit.dart) and is not the '
+              '$_utilities summary',
         );
       });
 
-      if (!barrel.existsSync()) return;
+      if (found == null) return;
 
-      final sources = _exportedSources(unit);
-      final types = _publicNames(sources, _declaration);
-      final functions = _publicNames(sources, _topLevelFunction);
-      final constants = _publicNames(sources, _topLevelConst);
+      final sources = found;
+      final hidden = _hidden(sources);
+      final types = _publicNames(sources, _declaration).difference(hidden);
+      final functions = _publicNames(
+        sources,
+        _topLevelFunction,
+      ).difference(hidden);
+      final constants = _publicNames(
+        sources,
+        _topLevelConst,
+      ).difference(hidden);
       final statics = _publicNames(sources, _staticMember);
 
       test('the scan finds a surface to compare against', () {
@@ -183,7 +258,7 @@ void main() {
           missing,
           isEmpty,
           reason:
-              'lib/src/$unit exports these and the summary gives them no '
+              '$unit exports these and the summary gives them no '
               '`### ` section: $missing',
         );
       });
@@ -196,7 +271,7 @@ void main() {
           missing,
           isEmpty,
           reason:
-              'lib/src/$unit declares these public statics and the summary '
+              '$unit declares these public statics and the summary '
               'never names them: $missing',
         );
       });
@@ -234,16 +309,10 @@ final _overview = RegExp(r'\n## Overview\n(.*?)(?=\n## )', dotAll: true);
 /// A link target in the index.
 final _link = RegExp(r'\]\(([^)]+)\)');
 
-/// Exported public members at or above which a unit earns its own summary.
-///
-/// Members, not types and not lines: what a reader has to hold in their head is
-/// the set of things they can call, and a type with nine methods costs more
-/// than three types with one each. Counting types put `placeholders` (6 types,
-/// 35 members) beside `bearer_auth` (3 and 5) when it belongs beside
-/// `isolate_streaming` (12 and 47). `doc/api/api_summary_index.md` states the
-/// rule and tabulates the six units against it, and says that `tom_flutter_ui`
-/// applies the same ten to exported types.
-const _summaryThreshold = 10;
+/// Exported public members below which a unit is small: its prose page's
+/// `## Overview` table is held to its whole surface, beside its summary
+/// (`bearer_auth`, `mcp_auth`).
+const _smallUnit = 10;
 
 /// Comments and string literals, removed before any structural scan.
 ///
@@ -384,30 +453,25 @@ void _unitRules() {
         );
       });
 
-      test('the threshold decides which, and it is obeyed', () {
+      test('it has an API summary', () {
         // The half the summary walk cannot ask. It checks the summaries that
         // exist and is silent about the one nobody wrote — which is the
-        // failure a unit drifts into by growing, not by being neglected.
-        if (members.length >= _summaryThreshold) {
-          expect(
-            hasSummary,
-            isTrue,
-            reason:
-                'lib/src/$unit exports ${members.length} public members, at '
-                'or over the threshold of $_summaryThreshold, and has no '
-                'doc/api/api_summary_$unit.md',
-          );
-        }
+        // failure a new unit arrives with.
+        expect(
+          hasSummary,
+          isTrue,
+          reason: 'lib/src/$unit has no doc/api/api_summary_$unit.md',
+        );
       });
 
-      // A sub-threshold unit's page is held even when it has a summary too:
-      // the summary is the repository gate's demand, the page is the one a
-      // reader of a small unit is sent to.
-      if (members.length >= _summaryThreshold || !page.existsSync()) return;
+      // A small unit's page is held too: the summary is the repository
+      // gate's demand, the page is the one a reader of a small unit is sent
+      // to, and its Overview table names the whole surface.
+      if (members.length >= _smallUnit || !page.existsSync()) return;
 
       test('its Overview table names every exported name', () {
-        // Below the threshold the prose page's Overview IS the mirror, so it
-        // is held to the whole surface — types, top-level functions and
+        // A small unit's prose page Overview mirrors its surface as well, so
+        // it is held to all of it — types, top-level functions and
         // constants alike. tool/check_doc_overview_types.py compares types
         // only and skips a unit that exports none, which is exactly `mcp_auth`
         // and exactly the surface most easily got wrong.
@@ -437,6 +501,28 @@ void _unitRules() {
     });
   }
 
+  group('every public library has an API summary', () {
+    final libraries = _libraries();
+
+    test('the walk of lib/ found the libraries it claims to check', () {
+      expect(libraries, isNotEmpty, reason: 'found $libraries');
+    });
+
+    for (final name in [...libraries.keys, _utilities]) {
+      test('$name has doc/api/api_summary_$name.md', () {
+        expect(
+          summaries.containsKey(name),
+          isTrue,
+          reason: name == _utilities
+              ? 'the files lib/$_mainBarrel.dart exports straight from '
+                    'lib/src/ have no doc/api/api_summary_$name.md'
+              : '${libraries[name]!.map((f) => f.path).join(', ')} has no '
+                    'doc/api/api_summary_$name.md',
+        );
+      });
+    }
+  });
+
   group('the index accounts for every unit', () {
     test('it exists', () {
       expect(index.existsSync(), isTrue, reason: '${index.path} is missing');
@@ -444,21 +530,6 @@ void _unitRules() {
 
     if (!index.existsSync()) return;
     final text = index.readAsStringSync();
-
-    test('it says that tom_flutter_ui counts types for the same ten', () {
-      // Both packages state "a summary at ten", and each counts a different
-      // thing. A reader who has met one index reads the other's number as the
-      // same number unless the index says otherwise, and so does a third
-      // package adopting "the rule". tom_flutter_ui's suite holds the mirror
-      // sentence in its own index.
-      expect(
-        text,
-        contains('**`tom_flutter_ui` states the same threshold over types**'),
-        reason:
-            'the index must say that tom_flutter_ui applies ten to exported '
-            'types, so the two numbers are never read as one',
-      );
-    });
 
     test('it links every summary under doc/api/', () {
       final linked = _link.allMatches(text).map((m) => m.group(1)!).toSet();
@@ -475,47 +546,14 @@ void _unitRules() {
     });
 
     test('it names every unit, summarised or not', () {
-      // The point of the index is the units it says nothing about, so the
-      // sub-threshold ones are what it most has to name.
+      // A reader looks a unit up in the index; one it does not name reads as
+      // one that does not exist.
       final missing = units.where((u) => !_names(text, u)).toList()..sort();
       expect(
         missing,
         isEmpty,
         reason: 'lib/src holds units the index never names: $missing',
       );
-    });
-
-    test('its member and type counts are the measured ones', () {
-      // The table argues from those numbers — that `placeholders` sits with
-      // `isolate_streaming` on members and with `bearer_auth` on types — so a
-      // figure nobody maintains would leave the rule resting on a stale
-      // measurement. Both columns are derived here rather than trusted. A
-      // source-line column stood beside them and was removed instead of
-      // pinned: the argument does not rest on it, and a length nobody
-      // maintains is worse than no length.
-      final wrong = <String>[];
-      for (final unit in units) {
-        final sources = _exportedSources(unit);
-        final members = _publicMembers(sources).length;
-        final types = _publicNames(sources, _declaration).length;
-        final row = RegExp(
-          '^\\|\\s*`' +
-              RegExp.escape(unit) +
-              '`\\s*\\|\\s*(\\d+)\\s*\\|\\s*(\\d+)\\s*\\|',
-          multiLine: true,
-        ).firstMatch(text);
-        if (row == null) {
-          wrong.add('$unit: no row stating a member and a type count');
-          continue;
-        }
-        if (int.parse(row.group(1)!) != members) {
-          wrong.add('$unit: members ${row.group(1)}, measured $members');
-        }
-        if (int.parse(row.group(2)!) != types) {
-          wrong.add('$unit: types ${row.group(2)}, measured $types');
-        }
-      }
-      expect(wrong, isEmpty, reason: wrong.join('; '));
     });
 
     test('it links no summary that is not there', () {
