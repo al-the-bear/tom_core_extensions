@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.1
+
+- The README's `local.dart` section completed: the reference form, configuration, the service and approvals, errors, links to the Tom Secrets Manager packages and the protocol.
+
 ## 0.3.0
 
 ### Added

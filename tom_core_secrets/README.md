@@ -1,6 +1,6 @@
 # tom_core_secrets
 
-Published on pub.dev as [`tom_core_secrets` 0.3.0](https://pub.dev/packages/tom_core_secrets).
+Published on pub.dev as [`tom_core_secrets` 0.3.1](https://pub.dev/packages/tom_core_secrets).
 
 > **Attribution.** The Tom Framework is developed by Peter Nicolai Alexis Kyaw.
 > These packages are BSD-3-Clause licensed and published on pub.dev.
@@ -451,21 +451,43 @@ databasePassword: "secret:local:[env:prod]db.main"
 databaseUser: "secret:local:[env:prod]db.main#UserName"
 ```
 
-What follows `secret:local:` is a Tom Secrets Manager reference as `tsm`
-writes it — a key (`telegram.bot_token`), a path (`fleet/Cloud/AWS/root`), the
-qualifiers in front — and `#<field>` names a field of the entry, `Password`
-when none is named. The colons inside the brackets are harmless: a reference
-splits provider from path at the first colon only. The provider joins path and
-field again and asks the service for exactly that field; the service resolves
-the reference (store, overlays, the host's dimensions) and decides, by the
-approvals it keeps, whether this process may read it. It talks to the service
-with `tom_secrets_client`; there is no KDBX code in this package.
+The server resolves every reference once at boot, before it builds its
+configuration object, and again on each refresh. The provider asks the service
+for exactly the field a reference names; the service resolves the reference
+(store, overlays, the host's dimensions) and decides, by the approvals it
+keeps, whether this process may read it. The provider talks to the service with
+[`tom_secrets_client`](https://pub.dev/packages/tom_secrets_client) over the
+Tom Secrets Manager's
+[client protocol](https://github.com/al-the-bear/tom_secrets_clients/blob/main/protocol/protocol.md);
+there is no KDBX code in this package.
 
 ### Features
 
 | Type | What it does |
 | ---- | ------------ |
-| `TomLocalSecretsProvider` | The `TomSecretsProvider` over the secrets service: `fetch` sends `get` for the reference's field with the configured dimensions, waits for an unlock or an approval when asked, and answers the value with the entry's version (its last modification and the store revision) as the payload version, so a rotated secret reaches a watcher on refresh. `fromConfiguration` builds one from `secrets.local`. `close` closes the connection. |
+| `TomLocalSecretsProvider` | The `TomSecretsProvider` over the secrets service: `fetch` sends `get` for the reference's field with the configured dimensions, waits for an unlock or an approval when asked, and answers the value with the entry's version (its last modification and the store revision) as the payload version, so a rotated secret reaches a watcher on refresh. `fromConfiguration` builds one from `secrets.local`. `close` closes the connection; the next `fetch` opens a new one. |
+
+### The reference
+
+```text
+secret:local:<tsm reference>[#<field>]
+```
+
+What follows `secret:local:` is a Tom Secrets Manager reference as `tsm get`
+takes it — a key, a path in a store, an entry's UUID, with qualifiers in front
+— and `#<field>` names a field of the entry, `Password` when none is named:
+
+| Reference | Reads |
+| --------- | ----- |
+| `secret:local:telegram.bot_token` | the entry whose key is `telegram.bot_token`, field `Password` |
+| `secret:local:demo/Cloud/AWS/root#UserName` | the entry `root` in group `Cloud/AWS` of the store `demo`, field `UserName` |
+| `secret:local:[env:prod]db.main` | the key `db.main` with the dimension `env` bound to `prod` |
+| `secret:local:demo/~0f3c2a1b4d5e6f708192a3b4c5d6e7f8#totp` | an entry by its UUID, which survives renames and moves, field `totp` |
+
+A reference splits provider from path at the **first** colon, so the colons
+inside the brackets stay in the path, and takes the field after the **last**
+`#`. A reserved character inside a name is percent-encoded as `tsm` writes it
+(`demo/Mail/a%2Fb%23c`).
 
 ### Quick start
 
@@ -480,9 +502,10 @@ Future<void> main(List<String> args) async {
 }
 ```
 
-The first request of a new program goes to approval in the Tom Secrets
-Manager (the desktop app, or `tsm approve` on a headless host); afterwards the
-service answers it from the grant.
+The service must be running on the machine (a locked one is waited for until
+it is unlocked), and the first request of a new program goes to approval (see [The service and
+approvals](#the-service-and-approvals)); afterwards the service answers it from
+the grant.
 
 ### Example
 
@@ -498,20 +521,84 @@ dart run example/local_secrets_example.dart
 
 ### Configuration
 
-`TomLocalSecretsProvider.fromConfiguration` reads the `secrets.local` key;
-every setting is optional:
+A Tom server registers the provider at boot, before `TomSecrets.load`:
+
+```dart
+import 'package:tom_core_secrets/local.dart';
+import 'package:tom_core_server/tom_core_server.dart';
+
+void registerSecrets() {
+  TomSecrets.register(TomLocalSecretsProvider.fromConfiguration());
+}
+```
+
+`TomLocalSecretsProvider.fromConfiguration` reads the `secrets.local` key of
+the server's configuration; every setting is optional:
+
+```yaml
+secrets:
+  local:
+    clientName: billing-server   # shown in the approval prompt
+    dimensions:                  # sent with every request
+      env: prod
+    timeoutSeconds: 30           # how long a request may wait
+    waitForUnlock: true          # false: answer `locked` at once
+```
 
 | Setting | Meaning |
 | ------- | ------- |
 | `clientName` | The name shown in the approval prompt (default the executable's name). Shown, never trusted: the service identifies the process itself. |
-| `dimensions` | Dimension values sent with every request, for example `{env: prod}` for the deployment. |
+| `dimensions` | Dimension values sent with every request, for example `{env: prod}` for the deployment. A reference that binds the same dimension to another value is refused (kind `malformed`, reason `conflicting_dimension`). |
 | `timeoutSeconds` | How long a request may wait for an unlock or an approval; the service caps it. |
 | `waitForUnlock` | `false` answers a locked service at once (`secrets.fetch.failed`, kind `locked`) instead of waiting. Default `true`. |
 
-The service is found in the runtime directory of the machine's user:
-`TSM_RUNTIME_DIR` when set (containers, tests), else `$XDG_RUNTIME_DIR/tsm` on
-Linux, `$TMPDIR/tsm` on macOS, `%LOCALAPPDATA%\TomSecretsManager\run` on
-Windows.
+A setting of the wrong type is refused with `secrets.local.config.malformed`.
+The constructor takes the same settings (`clientName`, `dimensions`, `wait`,
+`timeout`), the registration `name` (default `local`), the `environment` the
+service is looked for in, and a `client` of its own.
+
+### The service and approvals
+
+The provider reads from a running secrets service; it never starts one. On a
+desktop the Tom Secrets Manager app runs it; on a headless host `tsm start`
+starts it and `tsm unlock` unlocks it (`tsm` is the
+[`tom_secrets_tsm`](https://pub.dev/packages/tom_secrets_tsm) command-line
+tool). The service is found in the runtime directory of the OS user the server
+runs as:
+
+| OS | Where |
+| --- | --- |
+| any | `TSM_RUNTIME_DIR` when set (containers, tests) |
+| Linux | `$XDG_RUNTIME_DIR/tsm/`, else `/tmp/tsm-<uid>/` |
+| macOS | `$TMPDIR/tsm/`, else `/tmp/tsm-<uid>/` |
+| Windows | `%LOCALAPPDATA%\TomSecretsManager\run\` (a localhost port and a client token) |
+
+The service measures each connecting process itself — its executable, or for
+`dart run` the interpreter and the script — and refuses a process of another
+OS user. A server it holds no grant for goes to approval on its first request:
+the desktop app prompts, or on a headless host the request waits with an
+approval code (`tsm approvals` lists it): the app on a trusted device turns the
+code into a one-time token, which `tsm approve <token>` on the host redeems. With
+`waitForUnlock: true` and a `timeoutSeconds` long enough, the boot waits
+through the unlock and the approval; once approved with "always", later starts
+are answered from the grant. A server whose boot must not wait sets
+`waitForUnlock: false`.
+
+### Errors
+
+A failed fetch throws `tom_core_server`'s `TomSecretsException`. At boot
+`TomSecrets.load` throws it on the first reference it cannot resolve, so the
+server does not start without its secrets; `TomSecrets.refresh` keeps the
+value a reference had and reports the reference as failed.
+
+| Key | When |
+| --- | ---- |
+| `secrets.fetch.not_found` | The service holds no entry or field for the reference. |
+| `secrets.fetch.failed` | Any other refusal or failure; the parameters name the `provider`, the tsm `reference`, the `kind` — `not_running` (no service), `locked`, `denied`, `ambiguous`, `malformed`, `timeout`, `rate_limited`, ... — and the `reason` when the service gave one. |
+| `secrets.local.binary_not_text` | The value is binary; a configuration value is text. |
+| `secrets.local.config.malformed` | A `secrets.local` setting has the wrong type; `setting` names it. |
+
+No message or parameter carries a secret value.
 
 ### Limits
 
@@ -519,7 +606,8 @@ Windows.
   runs on; a server elsewhere uses a cloud store.
 - **Text only.** A binary value is refused (`secrets.local.binary_not_text`).
 - **One request per field.** Each reference is fetched on its own, because the
-  service answers one field per `get`.
+  service answers one field per `get`: two fields of one entry are two
+  requests.
 
 ### Further documentation
 
@@ -527,6 +615,9 @@ Windows.
 | -------- | ------ |
 | [doc/local_secrets.md](doc/local_secrets.md) | The reference syntax, configuration, approvals, versions and rotation, the error keys |
 | [doc/api/api_summary_local.md](doc/api/api_summary_local.md) | Every public type and member |
+| [`tom_secrets_client`](https://pub.dev/packages/tom_secrets_client) | The Dart client the provider uses: finding the service, `get`, the reference grammar |
+| [`tom_secrets_tsm`](https://pub.dev/packages/tom_secrets_tsm) | `tsm`: starting, unlocking and administering the service, approvals |
+| [Client protocol](https://github.com/al-the-bear/tom_secrets_clients/blob/main/protocol/protocol.md) | The protocol the service speaks: finding it, references (section 4), `get`, approvals and grants (section 7), error kinds |
 
 ## Key-encryption keys for field encryption
 
@@ -592,7 +683,7 @@ the field-encryption side in
 
 ## Status
 
-Version **0.3.0**. `dart test` runs the unit suites, which drive each cloud
+Version **0.3.1**. `dart test` runs the unit suites, which drive each cloud
 provider against `MockClient` stand-ins and the `local` provider against an
 in-process stand-in for the secrets service, and the four examples. The tests tagged
 `emulator` run against each provider's emulator and skip themselves when it does
