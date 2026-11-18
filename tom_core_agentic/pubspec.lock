@@ -359,7 +359,7 @@ packages:
       path: "../../basics/tom_file_system"
       relative: true
     source: path
-    version: "0.2.0"
+    version: "0.2.1"
   tom_llm:
     dependency: "direct main"
     description:
