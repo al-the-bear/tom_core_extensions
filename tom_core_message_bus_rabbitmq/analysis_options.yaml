@@ -10,7 +10,7 @@ linter:
 analyzer:
   errors:
     # This package takes workspace packages by relative path, the workspace's
-    # development mode (`_copilot_guidelines/dart/project_republishing.md`);
+    # development mode (`_agent_guidelines/dart/project_republishing.md`);
     # the staged copy `_bin/publishing/` builds writes them as versions. Its
     # `dart_amqp` is a git dependency on the fork, which the staged copy keeps
     # and pub.dev refuses: this package publishes only once the fork is a
