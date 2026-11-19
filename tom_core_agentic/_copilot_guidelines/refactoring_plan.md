@@ -62,7 +62,7 @@ private additions allowed):
    [`dart/coding_guidelines.md`](../../../../_copilot_guidelines/dart/coding_guidelines.md).
 3. Quality check: no public API change; `dart analyze` clean.
 4. Create module documentation in `doc/{module}.md` per
-   [`documentation_guidelines.md`](../../../../_copilot_guidelines/documentation_guidelines.md).
+   [`documentation_guidelines.md`](../../../../../../../../_agent_guidelines/documentation_guidelines.md).
 5. Create **executable** examples per
    [`dart/examples.md`](../../../../_copilot_guidelines/dart/examples.md) under `example/`.
 6. Create / extend tests per
@@ -81,6 +81,6 @@ private additions allowed):
 | --------- | -------- |
 | Coding Guidelines | [`dart/coding_guidelines.md`](../../../../_copilot_guidelines/dart/coding_guidelines.md) |
 | Clean Code | [`dart/clean_code_principles.md`](../../../../_copilot_guidelines/dart/clean_code_principles.md) |
-| Documentation | [`documentation_guidelines.md`](../../../../_copilot_guidelines/documentation_guidelines.md) |
+| Documentation | [`documentation_guidelines.md`](../../../../../../../../_agent_guidelines/documentation_guidelines.md) |
 | Unit Tests | [`dart/unit_tests.md`](../../../../_copilot_guidelines/dart/unit_tests.md) |
 | Examples | [`dart/examples.md`](../../../../_copilot_guidelines/dart/examples.md) |
