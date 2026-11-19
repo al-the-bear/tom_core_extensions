@@ -59,14 +59,14 @@ private additions allowed):
 
 1. Read all files in the module; identify the public API surface.
 2. Refactor and document per
-   [`dart/coding_guidelines.md`](../../../../_copilot_guidelines/dart/coding_guidelines.md).
+   [`dart/coding_guidelines.md`](../../../../_agent_guidelines/dart/coding_guidelines.md).
 3. Quality check: no public API change; `dart analyze` clean.
 4. Create module documentation in `doc/{module}.md` per
    [`documentation_guidelines.md`](../../../../../../../../_agent_guidelines/documentation_guidelines.md).
 5. Create **executable** examples per
-   [`dart/examples.md`](../../../../_copilot_guidelines/dart/examples.md) under `example/`.
+   [`dart/examples.md`](../../../../_agent_guidelines/dart/examples.md) under `example/`.
 6. Create / extend tests per
-   [`dart/unit_tests.md`](../../../../_copilot_guidelines/dart/unit_tests.md); cover
+   [`dart/unit_tests.md`](../../../../_agent_guidelines/dart/unit_tests.md); cover
    cancellation, close-guards, and error paths.
 7. Create / regenerate `api.dart` (or `doc/api/api_summary_{module}.md`) and
    verify it matches the code.
@@ -79,8 +79,8 @@ private additions allowed):
 
 | Guideline | Location |
 | --------- | -------- |
-| Coding Guidelines | [`dart/coding_guidelines.md`](../../../../_copilot_guidelines/dart/coding_guidelines.md) |
-| Clean Code | [`dart/clean_code_principles.md`](../../../../_copilot_guidelines/dart/clean_code_principles.md) |
+| Coding Guidelines | [`dart/coding_guidelines.md`](../../../../_agent_guidelines/dart/coding_guidelines.md) |
+| Clean Code | [`dart/clean_code_principles.md`](../../../../_agent_guidelines/dart/clean_code_principles.md) |
 | Documentation | [`documentation_guidelines.md`](../../../../../../../../_agent_guidelines/documentation_guidelines.md) |
-| Unit Tests | [`dart/unit_tests.md`](../../../../_copilot_guidelines/dart/unit_tests.md) |
-| Examples | [`dart/examples.md`](../../../../_copilot_guidelines/dart/examples.md) |
+| Unit Tests | [`dart/unit_tests.md`](../../../../_agent_guidelines/dart/unit_tests.md) |
+| Examples | [`dart/examples.md`](../../../../_agent_guidelines/dart/examples.md) |

@@ -13,8 +13,8 @@
 
 | Document | Purpose |
 | -------- | ------- |
-| [Coding Guidelines](../../../../_copilot_guidelines/dart/coding_guidelines.md) | Naming, error handling, patterns |
-| [Clean Code](../../../../_copilot_guidelines/dart/clean_code_principles.md) | DRY, abstractions, code smells |
+| [Coding Guidelines](../../../../_agent_guidelines/dart/coding_guidelines.md) | Naming, error handling, patterns |
+| [Clean Code](../../../../_agent_guidelines/dart/clean_code_principles.md) | DRY, abstractions, code smells |
 | [Documentation](../../../../../../../../_agent_guidelines/documentation_guidelines.md) | User docs vs development docs |
-| [Unit Tests](../../../../_copilot_guidelines/dart/unit_tests.md) | Test structure, matchers, mocking |
-| [Examples](../../../../_copilot_guidelines/dart/examples.md) | Example file creation |
+| [Unit Tests](../../../../_agent_guidelines/dart/unit_tests.md) | Test structure, matchers, mocking |
+| [Examples](../../../../_agent_guidelines/dart/examples.md) | Example file creation |
