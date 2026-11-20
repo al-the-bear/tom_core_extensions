@@ -6,7 +6,7 @@ description: >-
   provider (agent_sdk.dart); and a tool surface for LLM agents with a closed
   registry, an in-process MCP server, consent and an audit trail
   (agent_tools.dart).
-version: 3.0.1
+version: 3.0.2
 repository: https://github.com/al-the-bear/tom_core_extensions
 
 environment:
@@ -25,10 +25,10 @@ dependencies:
   tom_file_system:
     path: ../../basics/tom_file_system
   # The CLI-server wire, its 19900–19909 discovery scan, and the Agent SDK
-  # message mirror. ^5.0.0: 5.0 takes tom_todo_model ^3.0.0 (the `group`
-  # status), as tom_file_session does; an older major would hold every app
-  # with both below it. This package uses none of the todo types.
-  tom_vscode_scripting_api: ^5.0.0
+  # message mirror. ^6.0.0: 6.0 takes tom_todo_model ^4.1.0 (the item model),
+  # as tom_file_session does; an older major would hold every app with both
+  # below it. This package uses none of the todo types.
+  tom_vscode_scripting_api: ^6.0.0
   yaml: ^3.1.0
   yaml_edit: ^2.2.4
   path: ^1.9.0

@@ -1,9 +1,8 @@
-## Unreleased
+## 3.0.2
 
-- Takes `tom_vscode_scripting_api` ^5.0.0, which reads todos with
-  `tom_todo_model` 3.0 (todo groups: the `group` status and `comprised_of`),
-  so a package on `tom_todo_model` ^3.0.0 resolves beside this one. Nothing
-  here reads todos.
+- Takes `tom_vscode_scripting_api` ^6.0.0, which reads todos with
+  `tom_todo_model` 4.1 (the item model), so a package on `tom_todo_model`
+  ^4.1.0 resolves beside this one. Nothing here reads todos.
 
 ## 3.0.1
 
