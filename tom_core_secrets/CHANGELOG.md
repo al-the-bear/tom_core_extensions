@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.4.0
+
+- **Breaking:** the Tom Secrets Manager's provider (`local.dart`,
+  `TomLocalSecretsProvider`) moved to its own package,
+  [`tom_secrets_provider`](https://pub.dev/packages/tom_secrets_provider), in
+  the Tom Secrets Manager's repository. tom_core depends on no Tom Secrets
+  Manager package, so `tom_core_secrets` no longer depends on
+  `tom_secrets_client`. A server that registers the provider adds
+  `tom_secrets_provider` and imports
+  `package:tom_secrets_provider/tom_secrets_provider.dart` in place of
+  `package:tom_core_secrets/local.dart`; nothing else changes.
+
 ## 0.3.1
 
 - The README's `local.dart` section completed: the reference form, configuration, the service and approvals, errors, links to the Tom Secrets Manager packages and the protocol.

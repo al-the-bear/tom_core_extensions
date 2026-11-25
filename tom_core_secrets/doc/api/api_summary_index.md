@@ -3,8 +3,9 @@
 API summaries for `tom_core_secrets` — secrets providers for Tom servers, one
 library per secrets service, each also offering the service's key as a
 key-encryption key for field encryption. A server imports the library of the
-service it uses: `package:tom_core_secrets/aws.dart`, `azure.dart`,
-`local.dart` or `vault.dart`. The framework side (`TomSecrets`,
+service it uses: `package:tom_core_secrets/aws.dart`, `azure.dart` or
+`vault.dart`. The Tom Secrets Manager's provider is the package
+`tom_secrets_provider`. The framework side (`TomSecrets`,
 `TomSecretsProvider`, secret references in the configuration) is in
 `tom_core_server`.
 
@@ -19,7 +20,6 @@ omitted.
 | ---------------- | ------------ | ----------- |
 | [AWS](api_summary_aws.md) | [Guide](../aws_secrets.md) | AWS Secrets Manager as a secrets provider, and AWS KMS as a key-encryption key. |
 | [Azure](api_summary_azure.md) | [Guide](../azure_secrets.md) | Azure Key Vault as a secrets provider, its credentials, and a Key Vault key as a key-encryption key. |
-| [Local](api_summary_local.md) | [Guide](../local_secrets.md) | The Tom Secrets Manager's secrets service as a secrets provider. |
 | [Vault](api_summary_vault.md) | [Guide](../vault_secrets.md) | HashiCorp Vault as a secrets provider, its auth methods, and a Transit key as a key-encryption key. |
 
 ## AWS Module
@@ -51,14 +51,6 @@ omitted.
 | `tomAzureKeyVaultScope` | `String` | The scope a Key Vault token is requested for with the client-credentials grant. | [→](api_summary_azure.md#global-functions-and-constants) |
 | `tomAzureKeyVaultResource` | `String` | The resource a managed-identity token is requested for. | [→](api_summary_azure.md#global-functions-and-constants) |
 
-## Local Module
-
-### Classes
-
-| Class | Description | Link |
-| ----- | ----------- | ---- |
-| `TomLocalSecretsProvider` | A `TomSecretsProvider` over the Tom Secrets Manager's secrets service. | [→](api_summary_local.md#tomlocalsecretsprovider) |
-
 ## Vault Module
 
 ### Classes
@@ -83,7 +75,6 @@ omitted.
 | `TomAzureKeyVaultSecretsProvider` | Azure |
 | `TomAzureManagedIdentityCredential` | Azure |
 | `TomAzureStaticTokenCredential` | Azure |
-| `TomLocalSecretsProvider` | Local |
 | `TomVaultAppRoleAuth` | Vault |
 | `TomVaultAuth` | Vault |
 | `TomVaultSecretsProvider` | Vault |
