@@ -1,3 +1,10 @@
+## 3.0.3
+
+- Takes `tom_vscode_scripting_api` ^7.0.0, which removed the Notes operations
+  and the `notes` / `clarifications` document folders (they are no longer part
+  of a Tom workspace). Nothing here called them; a package on
+  `tom_vscode_scripting_api` ^7.0.0 resolves beside this one.
+
 ## 3.0.2
 
 - Takes `tom_vscode_scripting_api` ^6.0.0, which reads todos with
