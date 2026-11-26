@@ -1,3 +1,11 @@
+## 3.0.5
+
+- Takes `tom_vscode_scripting_api` ^9.0.0, whose trail operations read the
+  quest's host trail (`TrailEntry` is a turn: id, questId, file, time, host,
+  session, profile, model, prompt, answer) and whose `DocumentFolder` no
+  longer has `botConversations` / `sendToChat`. Nothing here used them; a
+  package on `tom_vscode_scripting_api` ^9.0.0 resolves beside this one.
+
 ## 3.0.4
 
 - Takes `tom_vscode_scripting_api` ^8.0.0, which removed the Copilot answer
