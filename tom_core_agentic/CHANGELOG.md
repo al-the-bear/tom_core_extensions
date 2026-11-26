@@ -1,3 +1,11 @@
+## 3.0.4
+
+- Takes `tom_vscode_scripting_api` ^8.0.0, which removed the Copilot answer
+  files (`askCopilotChat`, `listAnswers`, `readAnswer`), every `answerWrapper`
+  and the queue's reminder operations and fields. Nothing here called them
+  (this package's own prompt-queue and timed-request models keep their fields);
+  a package on `tom_vscode_scripting_api` ^8.0.0 resolves beside this one.
+
 ## 3.0.3
 
 - Takes `tom_vscode_scripting_api` ^7.0.0, which removed the Notes operations
